@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:sigmacare_android_app/pages/user-registration/registrationpage.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -10,7 +12,7 @@ class HomePage extends StatefulWidget {
 class _HomePageState extends State<HomePage> {
   int _selectedIndex = 0;
 
-  //replace the Center widget with the actual pages
+  // Replace the Center widget with the actual pages
   final List<Widget> _pages = [
     const Center(child: Text('Home Page')),
     const Center(child: Text('Search Page')),
@@ -23,6 +25,20 @@ class _HomePageState extends State<HomePage> {
     setState(() {
       _selectedIndex = index;
     });
+  }
+
+  // Log out function
+  Future<void> _logout() async {
+    final supabase = Supabase.instance.client;
+    await supabase.auth.signOut();
+
+    // Navigate back to the RegistrationPage (or LoginPage)
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(
+        builder: (context) => const RegistrationPage(),
+      ),
+    );
   }
 
   @override
@@ -67,6 +83,12 @@ class _HomePageState extends State<HomePage> {
               onTap: () {
                 Navigator.pop(context);
               },
+            ),
+            // Log Out Button
+            ListTile(
+              leading: const Icon(Icons.exit_to_app),
+              title: const Text('Log Out'),
+              onTap: _logout,
             ),
           ],
         ),

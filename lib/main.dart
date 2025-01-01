@@ -5,17 +5,18 @@ import 'package:sigmacare_android_app/pages/user-registration/registrationpage.d
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 Future<void> main() async {
-  //importing environment variables from .env file
+  // Import environment variables from .env file
   await dotenv.load(fileName: ".env");
 
   String? url = dotenv.env['SUPABASE_URL'];
   String? anonKey = dotenv.env['SUPABASE_API_KEY'];
 
-  //initializing the supabase
+  // Initialize Supabase
   await Supabase.initialize(
     url: url ?? '',
     anonKey: anonKey ?? '',
   );
+
   runApp(const MyApp());
 }
 
@@ -30,7 +31,25 @@ class MyApp extends StatelessWidget {
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
         useMaterial3: true,
       ),
-      home: const RegistrationPage(),
+      home: const SessionChecker(),
     );
+  }
+}
+
+class SessionChecker extends StatelessWidget {
+  const SessionChecker({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final session = Supabase.instance.client.auth.currentSession;
+
+    // Check if user session exists
+    if (session != null) {
+      // If the user is logged in, navigate to HomePage
+      return const HomePage();
+    } else {
+      // If no session, navigate to RegistrationPage
+      return const RegistrationPage();
+    }
   }
 }

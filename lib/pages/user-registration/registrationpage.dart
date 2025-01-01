@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:sigmacare_android_app/api/_registerUser.dart';
+import 'package:sigmacare_android_app/pages/user-login/loginpage.dart';
 
 class RegistrationPage extends StatefulWidget {
   const RegistrationPage({Key? key}) : super(key: key);
@@ -120,10 +121,11 @@ class _RegistrationPageState extends State<RegistrationPage> {
                           const Text("Already have an account?"),
                           TextButton(
                             onPressed: () {
-                              // Handle navigation to login page
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
-                                    content: Text('Go to Login Page')),
+                              // Navigate to the EmailLoginPage
+                              Navigator.of(context).push(
+                                MaterialPageRoute(
+                                  builder: (context) => EmailLoginPage(),
+                                ),
                               );
                             },
                             child: const Text('Login'),
