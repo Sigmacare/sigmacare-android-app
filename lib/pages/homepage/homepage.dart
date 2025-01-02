@@ -1,6 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:sigmacare_android_app/pages/user-registration/registrationpage.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -10,116 +8,200 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
-  int _selectedIndex = 0;
+  // Dummy data
+  final String lastDiagnosticDate = "2025-01-01";
+  final String bodyStatus = "Running";
+  final String location = "123 Main St, Springfield";
+  final String batteryStatus = "85%";
 
-  // Replace the Center widget with the actual pages
-  final List<Widget> _pages = [
-    const Center(child: Text('Home Page')),
-    const Center(child: Text('Search Page')),
-    const Center(child: Text('Profile Page')),
-    const Center(child: Text('Notifications Page')),
-    const Center(child: Text('Settings Page')),
-  ];
-
-  void _onItemTapped(int index) {
-    setState(() {
-      _selectedIndex = index;
-    });
-  }
-
-  // Log out function
-  Future<void> _logout() async {
-    final supabase = Supabase.instance.client;
-    await supabase.auth.signOut();
-
-    // Navigate back to the RegistrationPage (or LoginPage)
-    Navigator.pushReplacement(
-      context,
-      MaterialPageRoute(
-        builder: (context) => const RegistrationPage(),
-      ),
-    );
+  // Function to handle button presses (like diagnostic, details, etc.)
+  void _onButtonPress(String buttonName) {
+    print("Button pressed: $buttonName");
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Flutter Demo Home Page'),
-        leading: Builder(
-          builder: (BuildContext context) {
-            return IconButton(
-              icon: const Icon(Icons.menu),
-              onPressed: () {
-                Scaffold.of(context).openDrawer();
-              },
-            );
-          },
-        ),
-      ),
-      drawer: Drawer(
-        child: ListView(
-          padding: EdgeInsets.zero,
-          children: [
-            DrawerHeader(
-              decoration: BoxDecoration(
-                color: Theme.of(context).primaryColor,
+    return Padding(
+      padding: const EdgeInsets.all(16.0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Heart Health Details Card
+          Container(
+            height: 230,
+            padding: const EdgeInsets.all(16.0),
+            decoration: BoxDecoration(
+              color: Colors.green[100],
+              borderRadius: BorderRadius.circular(12),
+              boxShadow: const [
+                BoxShadow(
+                  color: Colors.black12,
+                  blurRadius: 8,
+                  offset: Offset(0, 4),
+                ),
+              ],
+            ),
+            child: Row(
+              children: [
+                // Heart Image
+                Container(
+                  width: 210,
+                  height: 210,
+                  decoration: BoxDecoration(
+                    color: Colors.grey[200],
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Image.asset(
+                    'lib/assets/heart_image.png',
+                    fit: BoxFit.cover, // Ensures the image fits the container
+                  ),
+                ),
+
+                const SizedBox(width: 8),
+
+                // Heart Health Details
+                Container(
+                  padding: const EdgeInsets.all(10),
+                  width: 210,
+                  height: 210,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Icon(Icons.favorite, color: Colors.red, size: 48),
+                      const Text(
+                        'Heart Health Details',
+                        style: TextStyle(
+                            fontSize: 10,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.red),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        'Last Diagnostic Date: $lastDiagnosticDate',
+                        style: const TextStyle(
+                            fontSize: 8, fontWeight: FontWeight.normal),
+                      ),
+                      const SizedBox(height: 8),
+                      ElevatedButton(
+                        onPressed: () => _onButtonPress("Diagnostic"),
+                        child: const Text('Diagnostic'),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 16),
+
+          // Status and Location Cards in a Row (Square Shape)
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              // Status Card
+              Container(
+                width: MediaQuery.of(context).size.width / 2 -
+                    30.0, // Ensures the card is square
+                height: 200, // Square height
+                decoration: BoxDecoration(
+                  color: Colors.blue[50],
+                  borderRadius: BorderRadius.circular(12),
+                  boxShadow: const [
+                    BoxShadow(
+                      color: Colors.black12,
+                      blurRadius: 8,
+                      offset: Offset(0, 4),
+                    ),
+                  ],
+                ),
+                padding: const EdgeInsets.all(16.0),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Icons.directions_run,
+                        color: Colors.blue, size: 36), // Status Icon
+                    const SizedBox(height: 8),
+                    Text(
+                      'Current Status: $bodyStatus',
+                      style: const TextStyle(
+                          fontSize: 16, fontWeight: FontWeight.bold),
+                    ),
+                    const SizedBox(height: 8),
+                    ElevatedButton(
+                      onPressed: () => _onButtonPress("Details"),
+                      child: const Text('Details'),
+                    ),
+                  ],
+                ),
               ),
-              child: const Text(
-                'Drawer Header',
-                style: TextStyle(color: Colors.white, fontSize: 24),
+
+              // Location Card
+              Container(
+                width: MediaQuery.of(context).size.width / 2 -
+                    30.0, // Ensures the card is square
+                height: 200, // Square height
+                decoration: BoxDecoration(
+                  color: Colors.green[50],
+                  borderRadius: BorderRadius.circular(12),
+                  boxShadow: const [
+                    BoxShadow(
+                      color: Colors.black12,
+                      blurRadius: 8,
+                      offset: Offset(0, 4),
+                    ),
+                  ],
+                ),
+                padding: const EdgeInsets.all(16.0),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Icons.location_on,
+                        color: Colors.green, size: 36), // Location Icon
+                    const SizedBox(height: 8),
+                    Text(
+                      'Location: $location',
+                      style: const TextStyle(
+                          fontSize: 16, fontWeight: FontWeight.bold),
+                    ),
+                    const SizedBox(height: 8),
+                    ElevatedButton(
+                      onPressed: () => _onButtonPress("Customize"),
+                      child: const Text('Customize'),
+                    ),
+                  ],
+                ),
               ),
-            ),
-            ListTile(
-              leading: const Icon(Icons.home),
-              title: const Text('Home'),
-              onTap: () {
-                Navigator.pop(context);
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.settings),
-              title: const Text('Settings'),
-              onTap: () {
-                Navigator.pop(context);
-              },
-            ),
-            // Log Out Button
-            ListTile(
-              leading: const Icon(Icons.exit_to_app),
-              title: const Text('Log Out'),
-              onTap: _logout,
-            ),
-          ],
-        ),
-      ),
-      body: _pages[_selectedIndex],
-      bottomNavigationBar: BottomNavigationBar(
-        items: const <BottomNavigationBarItem>[
-          BottomNavigationBarItem(
-            icon: Icon(Icons.home),
-            label: 'Home',
+            ],
           ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.search),
-            label: 'Search',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.person),
-            label: 'Profile',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.notifications),
-            label: 'Notifications',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.settings),
-            label: 'Settings',
+          const SizedBox(height: 16),
+
+          // Battery Tile (More Beautiful)
+          Container(
+            decoration: BoxDecoration(
+              color: Colors.blue[50],
+              borderRadius: BorderRadius.circular(12),
+              boxShadow: const [
+                BoxShadow(
+                  color: Colors.black12,
+                  blurRadius: 8,
+                  offset: Offset(0, 4),
+                ),
+              ],
+            ),
+            child: ListTile(
+              leading: Icon(Icons.battery_full, color: Colors.blue[200]),
+              title: const Text('Battery Status',
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+              subtitle:
+                  Text(batteryStatus, style: const TextStyle(fontSize: 14)),
+              contentPadding:
+                  const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+              trailing: const Icon(Icons.arrow_forward_ios, size: 18),
+              onTap: () => _onButtonPress("Battery Details"),
+            ),
           ),
         ],
-        currentIndex: _selectedIndex,
-        selectedItemColor: Colors.green[900],
-        onTap: _onItemTapped,
       ),
     );
   }

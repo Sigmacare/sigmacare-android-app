@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
-import 'package:sigmacare_android_app/pages/homepage/homepage.dart';
+import 'package:sigmacare_android_app/bottomnavigator.dart';
 import 'package:sigmacare_android_app/pages/user-registration/registrationpage.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -28,7 +28,7 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       title: 'Sigma Care',
       theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
+        colorScheme: ColorScheme.fromSeed(seedColor: Colors.greenAccent),
         useMaterial3: true,
       ),
       home: const SessionChecker(),
@@ -46,7 +46,7 @@ class SessionChecker extends StatelessWidget {
     // Check if user session exists
     if (session != null) {
       // If the user is logged in, navigate to HomePage
-      return const HomePage();
+      return const BottomNavigator();
     } else {
       // If no session, navigate to RegistrationPage
       return const RegistrationPage();
