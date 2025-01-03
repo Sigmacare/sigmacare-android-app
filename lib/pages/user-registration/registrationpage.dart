@@ -121,6 +121,8 @@ class _RegistrationPageState extends State<RegistrationPage> {
                           const Text("Already have an account?"),
                           TextButton(
                             onPressed: () {
+                              //POP
+                              Navigator.of(context).pop();
                               // Navigate to the EmailLoginPage
                               Navigator.of(context).push(
                                 MaterialPageRoute(

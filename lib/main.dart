@@ -5,6 +5,9 @@ import 'package:sigmacare_android_app/pages/user-registration/registrationpage.d
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 Future<void> main() async {
+  // Ensure Flutter bindings are initialized before loading environment variables and Supabase
+  WidgetsFlutterBinding.ensureInitialized();
+
   // Import environment variables from .env file
   await dotenv.load(fileName: ".env");
 
@@ -31,25 +34,36 @@ class MyApp extends StatelessWidget {
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.greenAccent),
         useMaterial3: true,
       ),
-      home: const SessionChecker(),
+      home: const AppInitializer(),
     );
   }
 }
 
-class SessionChecker extends StatelessWidget {
-  const SessionChecker({super.key});
+class AppInitializer extends StatelessWidget {
+  const AppInitializer({super.key});
 
   @override
   Widget build(BuildContext context) {
-    final session = Supabase.instance.client.auth.currentSession;
+    return FutureBuilder(
+      // Awaiting session check to ensure Supabase is initialized
+      future: Future.delayed(
+          Duration.zero, () => Supabase.instance.client.auth.currentSession),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          // Show loading indicator while waiting for session check
+          return const Center(child: CircularProgressIndicator());
+        }
 
-    // Check if user session exists
-    if (session != null) {
-      // If the user is logged in, navigate to HomePage
-      return const BottomNavigator();
-    } else {
-      // If no session, navigate to RegistrationPage
-      return const RegistrationPage();
-    }
+        // After session check completes, navigate to the correct page
+        final session = snapshot.data;
+        if (session != null) {
+          // If the user is logged in, navigate to BottomNavigator
+          return const BottomNavigator();
+        } else {
+          // If no session, navigate to RegistrationPage
+          return const RegistrationPage();
+        }
+      },
+    );
   }
 }

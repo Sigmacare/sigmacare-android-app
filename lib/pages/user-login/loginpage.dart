@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:sigmacare_android_app/bottomnavigator.dart';
 import 'package:sigmacare_android_app/pages/homepage/homepage.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -30,7 +31,7 @@ class _EmailLoginPageState extends State<EmailLoginPage> {
         // Navigate to HomePage
         Navigator.of(context).pushReplacement(
           MaterialPageRoute(
-            builder: (context) => HomePage(),
+            builder: (context) => BottomNavigator(),
           ),
         );
       } else {

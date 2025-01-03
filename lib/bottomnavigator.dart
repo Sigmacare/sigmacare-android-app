@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:sigmacare_android_app/pages/homepage/homepage.dart';
+import 'package:sigmacare_android_app/pages/servicepage/servicepage.dart';
 import 'package:sigmacare_android_app/pages/user-registration/registrationpage.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -15,7 +16,7 @@ class _BottomNavigatorState extends State<BottomNavigator> {
 
   final List<Widget> _pages = [
     HomePage(),
-    const Center(child: Text('Search Page', style: TextStyle(fontSize: 24))),
+    ServicePage(),
     const Center(child: Text('Profile Page', style: TextStyle(fontSize: 24))),
     const Center(
         child: Text('Notifications Page', style: TextStyle(fontSize: 24))),
@@ -24,9 +25,8 @@ class _BottomNavigatorState extends State<BottomNavigator> {
 
   final List<String> _appBarTitles = [
     'Home',
-    'Search',
+    'Appointments',
     'Profile',
-    'Notifications',
     'Settings',
   ];
 
@@ -96,16 +96,12 @@ class _BottomNavigatorState extends State<BottomNavigator> {
             label: 'Home',
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.search),
-            label: 'Search',
+            icon: Icon(Icons.calendar_today),
+            label: 'Appointment',
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.person),
             label: 'Profile',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.notifications),
-            label: 'Notifications',
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.settings),
