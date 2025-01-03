@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:sigmacare_android_app/api/_getHospitals.dart';
+import 'package:sigmacare_android_app/models/hospital_model.dart';
 import 'package:sigmacare_android_app/pages/servicepage/components/doctorcard.dart';
 import 'package:sigmacare_android_app/pages/servicepage/components/hospitalcard.dart';
 
@@ -10,6 +12,15 @@ class ServicePage extends StatefulWidget {
 }
 
 class _ServicePageState extends State<ServicePage> {
+  late Future<List<HospitalModel>> _hospitals;
+
+  @override
+  void initState() {
+    super.initState();
+    _hospitals = fetchHospitalDetails(); // Fetch hospital details from the API
+    // Debugging message
+  }
+
   @override
   Widget build(BuildContext context) {
     final screenHeight = MediaQuery.of(context).size.height;
@@ -28,7 +39,7 @@ class _ServicePageState extends State<ServicePage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            //latest appointment details
+            // Latest appointment details
             Container(
               width: screenWidth,
               padding: const EdgeInsets.all(16),
@@ -161,7 +172,7 @@ class _ServicePageState extends State<ServicePage> {
               ),
             ),
 
-            // Hospitals Container
+            // Hospitals Container - Using FutureBuilder to display hospitals
             Container(
               height: screenHeight * 0.4 - 20, // 20% of screen height
               child: Column(
@@ -173,30 +184,42 @@ class _ServicePageState extends State<ServicePage> {
                   ),
                   const SizedBox(height: 10),
                   Expanded(
-                    child: ListView(
-                      scrollDirection: Axis.horizontal,
-                      children: const [
-                        HospitalCard(
-                          name: 'Hospital 1',
-                          location: 'Kochi',
-                          image: 'lib/assets/hospital2.jpg',
-                          rating: 4.5,
-                        ),
-                        SizedBox(width: 10),
-                        HospitalCard(
-                          name: 'Hospital 2',
-                          location: 'Kochi',
-                          image: 'lib/assets/hospital2.jpg',
-                          rating: 4.5,
-                        ),
-                        SizedBox(width: 10),
-                        HospitalCard(
-                          name: 'Hospital 1',
-                          location: 'Kochi',
-                          image: 'lib/assets/hospital2.jpg',
-                          rating: 4.5,
-                        ),
-                      ],
+                    child: FutureBuilder<List<HospitalModel>>(
+                      future: _hospitals,
+                      builder: (context, snapshot) {
+                        if (snapshot.connectionState ==
+                            ConnectionState.waiting) {
+                          return const Center(
+                              child: CircularProgressIndicator());
+                        } else if (snapshot.hasError) {
+                          return Center(
+                              child: Text('Error: ${snapshot.error}'));
+                        } else if (!snapshot.hasData ||
+                            snapshot.data!.isEmpty) {
+                          return const Center(
+                              child: Text('No hospitals available.'));
+                        } else {
+                          final hospitals = snapshot.data!;
+                          return ListView.builder(
+                            scrollDirection: Axis.horizontal,
+                            itemCount: hospitals.length,
+                            itemBuilder: (context, index) {
+                              final hospital = hospitals[index];
+
+                              return Padding(
+                                padding: const EdgeInsets.only(right: 8),
+                                child: HospitalCard(
+                                  name: hospital.hospitalName,
+                                  location: hospital.hospitalCity,
+                                  image: hospital.hospitalImage
+                                      .toString(), // Ensure your model has this property
+                                  rating: double.parse(hospital.hospitalRating),
+                                ),
+                              );
+                            },
+                          );
+                        }
+                      },
                     ),
                   ),
                   const SizedBox(height: 8),

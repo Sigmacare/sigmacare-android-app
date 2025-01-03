@@ -36,16 +36,44 @@ class _HospitalCardState extends State<HospitalCard> {
           ClipRRect(
             borderRadius: BorderRadius.circular(12),
             child: widget.image != null
-                ? Image.asset(
+                ? Image.network(
                     widget.image!,
                     width: 180,
                     height: 120,
                     fit: BoxFit.cover,
+                    loadingBuilder: (context, child, loadingProgress) {
+                      if (loadingProgress == null) {
+                        return child;
+                      } else {
+                        return Center(
+                          child: CircularProgressIndicator(
+                              value: loadingProgress.expectedTotalBytes != null
+                                  ? loadingProgress.expectedTotalBytes != null
+                                      ? loadingProgress.cumulativeBytesLoaded /
+                                          (loadingProgress.expectedTotalBytes ??
+                                              1)
+                                      : null
+                                  : null),
+                        );
+                      }
+                    },
+                    errorBuilder: (context, error, stackTrace) {
+                      return Container(
+                        width: 180,
+                        height: 120,
+                        color: Colors.grey[300],
+                        child: const Icon(
+                          Icons.broken_image,
+                          size: 50,
+                          color: Colors.grey,
+                        ),
+                      );
+                    },
                   )
                 : Container(
                     width: 180,
                     height: 120,
-                    color: Colors.grey[300], // Placeholder color
+                    color: Colors.grey[300],
                     child: const Icon(
                       Icons.broken_image,
                       size: 50,
