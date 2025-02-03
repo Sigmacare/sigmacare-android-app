@@ -123,7 +123,7 @@ class _ServicePageState extends State<ServicePage> {
                       print('Show appointment details');
                     },
                     style: ElevatedButton.styleFrom(
-                      primary: Colors.blue, // Button color
+                      backgroundColor: Colors.blue, // Button color
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),
                       ),
