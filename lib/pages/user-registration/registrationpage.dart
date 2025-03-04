@@ -15,18 +15,23 @@ class _RegistrationPageState extends State<RegistrationPage> {
   // Text editing controllers for text fields
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
+  final TextEditingController _nameController = TextEditingController();
+  final TextEditingController _phoneController = TextEditingController();
 
   void _register() async {
     if (_formKey.currentState!.validate()) {
       final email = _emailController.text;
+      final name = _nameController.text;
+      final phone = _phoneController.text;
       final password = _passwordController.text;
 
       // Call the registerUser function
       await registerUser(
-        context: context,
-        email: email,
-        password: password,
-      );
+          context: context,
+          email: email,
+          password: password,
+          name: name,
+          phone: phone);
     }
   }
 
