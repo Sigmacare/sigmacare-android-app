@@ -2,6 +2,8 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:sigmacare_android_app/models/hospital_model.dart';
+// Import your hospital details page (adjust the path as needed)
+import 'package:sigmacare_android_app/pages/hospital_details_page.dart';
 
 class BookingPage extends StatefulWidget {
   const BookingPage({super.key});
@@ -45,7 +47,7 @@ class _BookingPageState extends State<BookingPage> {
       final response = await http.get(Uri.parse(url));
       if (response.statusCode == 200) {
         final List<dynamic> data = jsonDecode(response.body);
-        // Use your model's static method to convert JSON list to HospitalModel list.
+        // Use HospitalModel.fromJsonList to convert the response into a list of models.
         return HospitalModel.fromJsonList(data);
       } else {
         throw Exception(
@@ -59,6 +61,7 @@ class _BookingPageState extends State<BookingPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      appBar: AppBar(title: const Text('Booking')),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
@@ -140,17 +143,15 @@ class _BookingPageState extends State<BookingPage> {
                           itemBuilder: (context, index) {
                             final hospital = hospitalList[index];
                             return HospitalCard(
+                              hospitalId: hospital.hospitalId,
                               name: hospital.hospitalName,
-                              // Combining city and state as location.
                               location:
                                   '${hospital.hospitalCity}, ${hospital.hospitalState}',
-                              // Use a default specialization if needed.
                               specialization: 'General Hospital',
                               rating: hospital.hospitalRating,
-                              // Use hospitalImage; if empty, consider a placeholder.
                               imagePath: hospital.hospitalImage.isNotEmpty
                                   ? hospital.hospitalImage
-                                  : 'lib/assets/hospital1.jpg',
+                                  : 'lib/assets/hospital_placeholder.jpg',
                             );
                           },
                         );
@@ -212,8 +213,8 @@ class DoctorCard extends StatelessWidget {
   }
 }
 
-// HospitalCard widget uses fields from HospitalModel.
 class HospitalCard extends StatelessWidget {
+  final String hospitalId;
   final String name;
   final String location;
   final String specialization;
@@ -221,6 +222,7 @@ class HospitalCard extends StatelessWidget {
   final String imagePath;
 
   const HospitalCard({
+    required this.hospitalId,
     required this.name,
     required this.location,
     required this.specialization,
@@ -234,6 +236,15 @@ class HospitalCard extends StatelessWidget {
     return Card(
       margin: const EdgeInsets.symmetric(vertical: 8),
       child: ListTile(
+        onTap: () {
+          // Now hospitalId is a String, so pass it directly.
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => HospitalDetailsPage(hospitalId: hospitalId),
+            ),
+          );
+        },
         leading: CircleAvatar(
           backgroundImage: AssetImage(imagePath),
         ),
