@@ -10,22 +10,22 @@ class RegistrationPage extends StatefulWidget {
 }
 
 class _RegistrationPageState extends State<RegistrationPage> {
-  final _formKey = GlobalKey<FormState>(); // Form key for validation purposes
+  final _formKey = GlobalKey<FormState>();
 
-  // Text editing controllers for text fields
-  final TextEditingController _emailController = TextEditingController();
-  final TextEditingController _passwordController = TextEditingController();
+  // Controllers for our text fields
   final TextEditingController _nameController = TextEditingController();
+  final TextEditingController _emailController = TextEditingController();
   final TextEditingController _phoneController = TextEditingController();
+  final TextEditingController _passwordController = TextEditingController();
 
   void _register() async {
     if (_formKey.currentState!.validate()) {
-      final email = _emailController.text;
       final name = _nameController.text;
+      final email = _emailController.text;
       final phone = _phoneController.text;
       final password = _passwordController.text;
 
-      // Call the registerUser function
+      // Call your custom registerUser function for your backend
       await registerUser(
           context: context,
           email: email,
@@ -64,6 +64,25 @@ class _RegistrationPageState extends State<RegistrationPage> {
                         ),
                       ),
                       const SizedBox(height: 20),
+                      // Name field
+                      TextFormField(
+                        controller: _nameController,
+                        decoration: InputDecoration(
+                          labelText: 'Name',
+                          prefixIcon: const Icon(Icons.person),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                        ),
+                        validator: (value) {
+                          if (value == null || value.isEmpty) {
+                            return 'Please enter your name';
+                          }
+                          return null;
+                        },
+                      ),
+                      const SizedBox(height: 20),
+                      // Email field
                       TextFormField(
                         controller: _emailController,
                         decoration: InputDecoration(
@@ -85,6 +104,29 @@ class _RegistrationPageState extends State<RegistrationPage> {
                         },
                       ),
                       const SizedBox(height: 20),
+                      // Phone Number field
+                      TextFormField(
+                        controller: _phoneController,
+                        decoration: InputDecoration(
+                          labelText: 'Phone Number',
+                          prefixIcon: const Icon(Icons.phone),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                        ),
+                        keyboardType: TextInputType.phone,
+                        validator: (value) {
+                          if (value == null || value.isEmpty) {
+                            return 'Please enter your phone number';
+                          }
+                          if (!RegExp(r'^\+?[0-9]{7,15}$').hasMatch(value)) {
+                            return 'Please enter a valid phone number';
+                          }
+                          return null;
+                        },
+                      ),
+                      const SizedBox(height: 20),
+                      // Password field
                       TextFormField(
                         controller: _passwordController,
                         decoration: InputDecoration(
@@ -106,6 +148,7 @@ class _RegistrationPageState extends State<RegistrationPage> {
                         },
                       ),
                       const SizedBox(height: 30),
+                      // Register Button
                       ElevatedButton(
                         onPressed: _register,
                         style: ElevatedButton.styleFrom(
@@ -120,15 +163,14 @@ class _RegistrationPageState extends State<RegistrationPage> {
                         ),
                       ),
                       const SizedBox(height: 10),
+                      // Already have an account?
                       Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
                           const Text("Already have an account?"),
                           TextButton(
                             onPressed: () {
-                              //POP
-                              Navigator.of(context).pop();
-                              // Navigate to the EmailLoginPage
+                              // Directly push the login page without popping the current route.
                               Navigator.of(context).push(
                                 MaterialPageRoute(
                                   builder: (context) => EmailLoginPage(),

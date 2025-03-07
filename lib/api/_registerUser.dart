@@ -11,24 +11,23 @@ Future<void> registerUser({
   required String password,
   required String phone,
 }) async {
+  // Show a loading indicator to keep your users calm while magic happens
+  showDialog(
+    context: context,
+    barrierDismissible: false, // No accidental dismissals allowed!
+    builder: (BuildContext context) {
+      return const Center(
+        child: CircularProgressIndicator(),
+      );
+    },
+  );
+
   try {
-    // Show loading indicator
-    showDialog(
-      context: context,
-      barrierDismissible:
-          false, // Prevent dismissing the dialog by tapping outside
-      builder: (BuildContext context) {
-        return const Center(
-          child: CircularProgressIndicator(),
-        );
-      },
-    );
-
-    // API Endpoint
+    // API Endpoint – change this if your backend URL ever decides to go on an adventure
     const String url =
-        'https://47b9-152-59-241-36.ngrok-free.app/api/users/register';
+        'https://sigmacare-backend.onrender.com/api/users/register';
 
-    // Request body
+    // Prepare the registration data payload
     final Map<String, dynamic> body = {
       "username": name,
       "email": email,
@@ -36,39 +35,38 @@ Future<void> registerUser({
       "phone": phone,
     };
 
-    // Make the POST request
+    // Send a POST request to your backend
     final response = await http.post(
       Uri.parse(url),
       headers: {"Content-Type": "application/json"},
       body: jsonEncode(body),
     );
 
-    // Dismiss loading indicator
-    Navigator.pop(context);
+    // Dismiss the loading indicator if it's still on stage
+    if (Navigator.canPop(context)) Navigator.pop(context);
 
-    // Handle response
-    if (response.statusCode == 201) {
-      // Successful registration
+    // Check if the registration was a hit (201 Created or sometimes 200 OK)
+    if (response.statusCode == 201 || response.statusCode == 200) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Registration successful!')),
       );
 
-      // Navigate to the HomePage
+      // Navigate to the HomePage to celebrate the new user
       Navigator.pushReplacement(
         context,
-        MaterialPageRoute(builder: (context) => const HomePage()),
+        MaterialPageRoute(builder: (context) => HomePage()),
       );
     } else {
-      // Registration failed
-      final errorMsg =
-          jsonDecode(response.body)['message'] ?? 'Registration failed';
+      // Registration flopped; extract error message if available
+      final responseData = jsonDecode(response.body);
+      final errorMsg = responseData['message'] ?? 'Registration failed';
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Error: $errorMsg')),
       );
     }
   } catch (e) {
-    // Handle any exceptions
-    Navigator.pop(context); // Dismiss loading dialog
+    // In case of any unexpected hiccups, dismiss the loading indicator and show the error
+    if (Navigator.canPop(context)) Navigator.pop(context);
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text('Error: ${e.toString()}')),
     );

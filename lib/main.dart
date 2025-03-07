@@ -1,16 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
-import 'package:sigmacare_android_app/bottomnavigator.dart';
-import 'package:sigmacare_android_app/pages/booking_page.dart';
-import 'package:sigmacare_android_app/pages/homepage/homepage.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:sigmacare_android_app/pages/user-registration/registrationpage.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:sigmacare_android_app/bottomnavigator.dart';
 
 Future<void> main() async {
-  // Import environment variables from .env file
-  await dotenv.load(fileName: ".env");
-
-  ;
+  WidgetsFlutterBinding.ensureInitialized();
+  // Uncomment if you need environment variables:
+  // await dotenv.load(fileName: ".env");
 
   runApp(const MyApp());
 }
@@ -26,7 +23,7 @@ class MyApp extends StatelessWidget {
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.greenAccent),
         useMaterial3: true,
       ),
-      home: AppInitializer(),
+      home: const AppInitializer(),
       debugShowCheckedModeBanner: false,
     );
   }
@@ -35,27 +32,30 @@ class MyApp extends StatelessWidget {
 class AppInitializer extends StatelessWidget {
   const AppInitializer({super.key});
 
+  // Check if the auth token exists in secure storage.
+  Future<bool> checkLoginStatus() async {
+    final storage = FlutterSecureStorage();
+    final token = await storage.read(key: 'auth_token');
+    return token != null;
+  }
+
   @override
   Widget build(BuildContext context) {
-    return FutureBuilder(
-      // Awaiting session check to ensure Supabase is initialized
-      future: Future.delayed(
-          Duration.zero, () => Supabase.instance.client.auth.currentSession),
+    return FutureBuilder<bool>(
+      future: checkLoginStatus(),
       builder: (context, snapshot) {
+        // While the token is being fetched, show a loading indicator.
         if (snapshot.connectionState == ConnectionState.waiting) {
-          // Show loading indicator while waiting for session check
-          return const Center(child: CircularProgressIndicator());
+          return const Scaffold(
+            body: Center(child: CircularProgressIndicator()),
+          );
         }
-
-        // After session check completes, navigate to the correct page
-        final session = snapshot.data;
-        if (session != null) {
-          // If the user is logged in, navigate to BottomNavigator
+        // If a token exists, navigate to BottomNavigator.
+        if (snapshot.hasData && snapshot.data == true) {
           return const BottomNavigator();
-        } else {
-          // If no session, navigate to RegistrationPage
-          return const RegistrationPage();
         }
+        // Otherwise, direct the user to the RegistrationPage.
+        return const RegistrationPage();
       },
     );
   }

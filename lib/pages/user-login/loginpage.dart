@@ -1,9 +1,13 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:sigmacare_android_app/bottomnavigator.dart';
-import 'package:sigmacare_android_app/pages/homepage/homepage.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 
 class EmailLoginPage extends StatefulWidget {
+  const EmailLoginPage({Key? key}) : super(key: key);
+
   @override
   _EmailLoginPageState createState() => _EmailLoginPageState();
 }
@@ -11,41 +15,58 @@ class EmailLoginPage extends StatefulWidget {
 class _EmailLoginPageState extends State<EmailLoginPage> {
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
-  final _supabase = Supabase.instance.client;
+
+  // Create a secure storage instance
+  final FlutterSecureStorage _secureStorage = const FlutterSecureStorage();
+
   String _errorMessage = '';
 
   Future<void> _login() async {
     final email = _emailController.text.trim();
     final password = _passwordController.text.trim();
 
+    // Replace with your actual backend login URL
+    const String loginUrl =
+        'https://sigmacare-backend.onrender.com/api/users/login';
+
     try {
-      final response = await _supabase.auth.signInWithPassword(
-        email: email,
-        password: password,
+      final response = await http.post(
+        Uri.parse(loginUrl),
+        headers: {"Content-Type": "application/json"},
+        body: jsonEncode({
+          'email': email,
+          'password': password,
+        }),
       );
-      if (response.session != null) {
+
+      if (response.statusCode == 200) {
+        // Parse response assuming a JSON with a 'token' field on successful login.
+        final responseData = jsonDecode(response.body);
+        final token = responseData['token'];
+
+        // Save the token securely for future API calls.
+        await _secureStorage.write(key: 'auth_token', value: token);
+
         setState(() {
           _errorMessage = '';
         });
 
-        // Navigate to HomePage
+        // Navigate to BottomNavigator or HomePage upon successful login.
         Navigator.of(context).pushReplacement(
           MaterialPageRoute(
-            builder: (context) => BottomNavigator(),
+            builder: (context) => const BottomNavigator(),
           ),
         );
       } else {
+        final responseData = jsonDecode(response.body);
         setState(() {
-          _errorMessage = 'Login failed. Please check your credentials.';
+          _errorMessage = responseData['error'] ??
+              'Login failed. Please check your credentials.';
         });
       }
-    } on AuthException catch (e) {
-      setState(() {
-        _errorMessage = e.message;
-      });
     } catch (e) {
       setState(() {
-        _errorMessage = 'An unexpected error occurred.';
+        _errorMessage = 'An unexpected error occurred: ${e.toString()}';
       });
     }
   }
@@ -54,7 +75,7 @@ class _EmailLoginPageState extends State<EmailLoginPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Login with Supabase'),
+        title: const Text('Login'),
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
@@ -64,30 +85,30 @@ class _EmailLoginPageState extends State<EmailLoginPage> {
           children: [
             TextField(
               controller: _emailController,
-              decoration: InputDecoration(
+              decoration: const InputDecoration(
                 labelText: 'Email',
                 border: OutlineInputBorder(),
               ),
               keyboardType: TextInputType.emailAddress,
             ),
-            SizedBox(height: 10),
+            const SizedBox(height: 10),
             TextField(
               controller: _passwordController,
-              decoration: InputDecoration(
+              decoration: const InputDecoration(
                 labelText: 'Password',
                 border: OutlineInputBorder(),
               ),
               obscureText: true,
             ),
-            SizedBox(height: 20),
+            const SizedBox(height: 20),
             ElevatedButton(
               onPressed: _login,
-              child: Text('Login'),
+              child: const Text('Login'),
             ),
-            SizedBox(height: 10),
+            const SizedBox(height: 10),
             Text(
               _errorMessage,
-              style: TextStyle(color: Colors.red),
+              style: const TextStyle(color: Colors.red),
               textAlign: TextAlign.center,
             ),
           ],

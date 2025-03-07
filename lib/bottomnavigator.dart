@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:sigmacare_android_app/pages/homepage/homepage.dart';
-import 'package:sigmacare_android_app/pages/servicepage/servicepage.dart';
+import 'package:sigmacare_android_app/pages/booking_page.dart';
 import 'package:sigmacare_android_app/pages/user-registration/registrationpage.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:sigmacare_android_app/api/_registerDevice.dart';
 
 class BottomNavigator extends StatefulWidget {
   const BottomNavigator({super.key});
@@ -16,10 +17,8 @@ class _BottomNavigatorState extends State<BottomNavigator> {
 
   final List<Widget> _pages = [
     HomePage(),
-    ServicePage(),
+    BookingPage(), // Tapping on "Appointment" now goes to BookingPage
     const Center(child: Text('Profile Page', style: TextStyle(fontSize: 24))),
-    const Center(
-        child: Text('Notifications Page', style: TextStyle(fontSize: 24))),
     const Center(child: Text('Settings Page', style: TextStyle(fontSize: 24))),
   ];
 
@@ -36,13 +35,13 @@ class _BottomNavigatorState extends State<BottomNavigator> {
     });
   }
 
-  // Logout Functionality
-  // Log out function
+  // Logout functionality: clear the secure storage and navigate to the main page.
   Future<void> _logout() async {
-    final supabase = Supabase.instance.client;
-    await supabase.auth.signOut();
+    // Clear the auth token from secure storage.
+    const storage = FlutterSecureStorage();
+    await storage.delete(key: 'auth_token');
 
-    // Navigate back to the RegistrationPage (or LoginPage)
+    // Navigate to the main page. (Assuming your AppInitializer is set up in main.dart.)
     Navigator.pushReplacement(
       context,
       MaterialPageRoute(
@@ -63,12 +62,10 @@ class _BottomNavigatorState extends State<BottomNavigator> {
         child: ListView(
           padding: EdgeInsets.zero,
           children: [
-            // Circular Avatar Section
+            // User Account Section
             UserAccountsDrawerHeader(
-              accountName: Text(
-                  'User Name'), // You can fetch the user's name dynamically
-              accountEmail: Text(
-                  'user@example.com'), // You can fetch the email dynamically
+              accountName: const Text('User Name'),
+              accountEmail: const Text('user@example.com'),
               currentAccountPicture: CircleAvatar(
                 radius: 40.0,
                 backgroundImage: NetworkImage(
@@ -80,10 +77,16 @@ class _BottomNavigatorState extends State<BottomNavigator> {
                 color: Colors.green[900],
               ),
             ),
+            ListTile(
+              leading: const Icon(Icons.add_circle),
+              title: const Text('Add Devices',
+                  style: TextStyle(color: Colors.black)),
+              onTap: () => _showAddDeviceDialog(context),
+            ),
             // Logout Button
             ListTile(
-              leading: Icon(Icons.logout, color: Colors.red),
-              title: Text('Logout', style: TextStyle(color: Colors.red)),
+              leading: const Icon(Icons.logout, color: Colors.red),
+              title: const Text('Logout', style: TextStyle(color: Colors.red)),
               onTap: _logout,
             ),
           ],
@@ -116,4 +119,48 @@ class _BottomNavigatorState extends State<BottomNavigator> {
       ),
     );
   }
+}
+
+void _showAddDeviceDialog(BuildContext context) {
+  final deviceCodeController = TextEditingController();
+  final deviceSecretController = TextEditingController();
+
+  showDialog(
+    context: context,
+    builder: (context) {
+      return AlertDialog(
+        title: const Text("Add Device"),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: deviceCodeController,
+              decoration: const InputDecoration(labelText: "Device Code"),
+            ),
+            TextField(
+              controller: deviceSecretController,
+              decoration: const InputDecoration(labelText: "Device Secret"),
+              obscureText: true,
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text("Cancel"),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              registerDevice(
+                deviceCodeController.text,
+                deviceSecretController.text,
+                context,
+              );
+            },
+            child: const Text("Register"),
+          ),
+        ],
+      );
+    },
+  );
 }

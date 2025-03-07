@@ -1,6 +1,18 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
 
-class BookingPage extends StatelessWidget {
+class BookingPage extends StatefulWidget {
+  const BookingPage({super.key});
+
+  @override
+  State<BookingPage> createState() => _BookingPageState();
+}
+
+class _BookingPageState extends State<BookingPage> {
+  bool isDoctorSelected = true;
+
+  // Dummy data for doctors
   final List<Map<String, String>> doctors = [
     {
       'name': 'Ranjana Maheshwari',
@@ -19,108 +31,146 @@ class BookingPage extends StatelessWidget {
     {
       'name': 'John Doe',
       'location': 'Kochi, Kerala',
-      'specialization': 'Gastroentrologist',
+      'specialization': 'Gastroenterologist',
       'rating': '5.7',
       'image': 'lib/assets/doctor3.jpg',
     },
-    {
-      'name': 'Ranjana Maheshwari',
-      'location': 'Kochi, Kerala',
-      'specialization': 'Mental health and behavioural sciences, psychiatry',
-      'rating': '5.7',
-      'image': 'lib/assets/doctor1.jpg',
-    },
-    {
-      'name': 'Lalitha Digambhar',
-      'location': 'Kochi, Kerala',
-      'specialization': 'Mental health and behavioural sciences, psychiatry',
-      'rating': '5.7',
-      'image': 'lib/assets/doctor1.jpg',
-    },
-    {
-      'name': 'John Doe',
-      'location': 'Kochi, Kerala',
-      'specialization': 'Gastroentrologist',
-      'rating': '5.7',
-      'image': 'lib/assets/doctor3.jpg',
-    }
   ];
 
-  BookingPage({super.key});
+  // Fetch hospital details from your API endpoint and map to expected keys.
+  Future<List<Map<String, String>>> fetchHospitalDetails() async {
+    const String url = 'https://sigmacare-backend.onrender.com/api/hospitals';
+    try {
+      final response = await http.get(Uri.parse(url));
+      if (response.statusCode == 200) {
+        final List<dynamic> data = jsonDecode(response.body);
+        // Map each hospital object to a Map<String, String> using default values for missing fields.
+        return data.map<Map<String, String>>((hospital) {
+          return {
+            'name': hospital['name']?.toString() ?? '',
+            // Use the 'address' field as location; adjust as needed.
+            'location': hospital['address']?.toString() ?? '',
+            // Default specialization for a hospital.
+            'specialization': 'General Hospital',
+            // Provide a default rating if not provided.
+            'rating': 'N/A',
+            // Use a placeholder image asset if not provided.
+            'image': 'lib/assets/hospital1.jpg',
+          };
+        }).toList();
+      } else {
+        throw Exception(
+            "Failed to load hospitals (status code: ${response.statusCode})");
+      }
+    } catch (e) {
+      throw Exception("Error fetching hospitals: $e");
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text('Appointment Booking'),
-        leading: IconButton(
-          icon: Icon(Icons.menu),
-          onPressed: () {},
-        ),
-      ),
+      appBar: AppBar(title: const Text('Booking')),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            // Search Field
             TextField(
               decoration: InputDecoration(
-                prefixIcon: Icon(Icons.search),
-                suffixIcon: Icon(Icons.filter_list),
+                prefixIcon: const Icon(Icons.search),
+                suffixIcon: const Icon(Icons.filter_list),
                 hintText: 'Search...',
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(8.0),
                 ),
               ),
             ),
-            SizedBox(height: 16),
+            const SizedBox(height: 16),
+            // Header row with title and sliding toggle button
             Row(
               children: [
                 Text(
-                  'Doctors',
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  isDoctorSelected ? 'Doctors' : 'Hospitals',
+                  style: const TextStyle(
+                      fontSize: 18, fontWeight: FontWeight.bold),
                 ),
-                Padding(
-                    padding: const EdgeInsets.only(left: 100.0),
-                    child: SlidingButton())
+                const Spacer(),
+                SlidingButton(
+                  isOption1Selected: isDoctorSelected,
+                  onToggle: (selected) {
+                    setState(() {
+                      isDoctorSelected = selected;
+                    });
+                  },
+                ),
               ],
             ),
-            Text('Consult our experts...'),
+            const SizedBox(height: 8),
+            Text(
+              isDoctorSelected
+                  ? 'Consult our experts...'
+                  : 'Find the best hospitals...',
+              style: const TextStyle(fontSize: 14),
+            ),
+            const SizedBox(height: 16),
+            // Display the list of doctors or hospitals
             Expanded(
-              child: ListView.builder(
-                itemCount: doctors.length, // Repeating the doctors
-                itemBuilder: (context, index) {
-                  final doctor = doctors[index % doctors.length];
-                  return DoctorCard(
-                    name: doctor['name']!,
-                    location: doctor['location']!,
-                    specialization: doctor['specialization']!,
-                    rating: doctor['rating']!,
-                    imagePath: doctor['image']!,
-                  );
-                },
-              ),
+              child: isDoctorSelected
+                  ? ListView.builder(
+                      itemCount: doctors.length,
+                      itemBuilder: (context, index) {
+                        final doctor = doctors[index];
+                        return DoctorCard(
+                          name: doctor['name']!,
+                          location: doctor['location']!,
+                          specialization: doctor['specialization']!,
+                          rating: doctor['rating']!,
+                          imagePath: doctor['image']!,
+                        );
+                      },
+                    )
+                  : FutureBuilder<List<Map<String, String>>>(
+                      future: fetchHospitalDetails(),
+                      builder: (context, snapshot) {
+                        if (snapshot.connectionState ==
+                            ConnectionState.waiting) {
+                          return const Center(
+                              child: CircularProgressIndicator());
+                        } else if (snapshot.hasError) {
+                          return Center(
+                              child: Text('Error: ${snapshot.error}'));
+                        } else if (!snapshot.hasData ||
+                            snapshot.data!.isEmpty) {
+                          return const Center(
+                              child: Text('No hospitals found.'));
+                        }
+                        final hospitalList = snapshot.data!;
+                        return ListView.builder(
+                          itemCount: hospitalList.length,
+                          itemBuilder: (context, index) {
+                            final hospital = hospitalList[index];
+                            return HospitalCard(
+                              name: hospital['name']!,
+                              location: hospital['location']!,
+                              specialization: hospital['specialization']!,
+                              rating: hospital['rating']!,
+                              imagePath: hospital['image']!,
+                            );
+                          },
+                        );
+                      },
+                    ),
             ),
           ],
         ),
-      ),
-      bottomNavigationBar: BottomNavigationBar(
-        type: BottomNavigationBarType.fixed,
-        selectedItemColor: Colors.blue,
-        unselectedItemColor: Colors.grey,
-        items: [
-          BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),
-          BottomNavigationBarItem(
-              icon: Icon(Icons.calendar_today), label: 'Appointment'),
-          BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Profile'),
-          BottomNavigationBarItem(
-              icon: Icon(Icons.settings), label: 'Settings'),
-        ],
       ),
     );
   }
 }
 
+// DoctorCard widget
 class DoctorCard extends StatelessWidget {
   final String name;
   final String location;
@@ -134,31 +184,32 @@ class DoctorCard extends StatelessWidget {
     required this.specialization,
     required this.rating,
     required this.imagePath,
+    super.key,
   });
 
   @override
   Widget build(BuildContext context) {
     return Card(
-      margin: EdgeInsets.symmetric(vertical: 8),
+      margin: const EdgeInsets.symmetric(vertical: 8),
       child: ListTile(
         leading: CircleAvatar(
           backgroundImage: AssetImage(imagePath),
         ),
         title: Text(
           name,
-          style: TextStyle(fontWeight: FontWeight.bold),
+          style: const TextStyle(fontWeight: FontWeight.bold),
         ),
         subtitle: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(location),
-            Text(specialization, style: TextStyle(fontSize: 12)),
+            Text(specialization, style: const TextStyle(fontSize: 12)),
           ],
         ),
         trailing: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.star, color: Colors.amber),
+            const Icon(Icons.star, color: Colors.amber),
             Text(rating),
           ],
         ),
@@ -167,19 +218,82 @@ class DoctorCard extends StatelessWidget {
   }
 }
 
+// HospitalCard widget (similar to DoctorCard)
+class HospitalCard extends StatelessWidget {
+  final String name;
+  final String location;
+  final String specialization;
+  final String rating;
+  final String imagePath;
+
+  const HospitalCard({
+    required this.name,
+    required this.location,
+    required this.specialization,
+    required this.rating,
+    required this.imagePath,
+    super.key,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      margin: const EdgeInsets.symmetric(vertical: 8),
+      child: ListTile(
+        leading: CircleAvatar(
+          backgroundImage: AssetImage(imagePath),
+        ),
+        title: Text(
+          name,
+          style: const TextStyle(fontWeight: FontWeight.bold),
+        ),
+        subtitle: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(location),
+            Text(specialization, style: const TextStyle(fontSize: 12)),
+          ],
+        ),
+        trailing: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(Icons.star, color: Colors.amber),
+            Text(rating),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// SlidingButton widget with callback support
 class SlidingButton extends StatefulWidget {
-  const SlidingButton({super.key});
+  final bool isOption1Selected;
+  final ValueChanged<bool> onToggle;
+
+  const SlidingButton({
+    super.key,
+    required this.isOption1Selected,
+    required this.onToggle,
+  });
 
   @override
   _SlidingButtonState createState() => _SlidingButtonState();
 }
 
 class _SlidingButtonState extends State<SlidingButton> {
-  bool isOption1Selected = true;
+  late bool isOption1Selected;
+
+  @override
+  void initState() {
+    super.initState();
+    isOption1Selected = widget.isOption1Selected;
+  }
 
   void _toggleSelection() {
     setState(() {
       isOption1Selected = !isOption1Selected;
+      widget.onToggle(isOption1Selected);
     });
   }
 
@@ -188,17 +302,18 @@ class _SlidingButtonState extends State<SlidingButton> {
     return GestureDetector(
       onTap: _toggleSelection,
       child: Container(
-        width: 160, // Fixed width
+        width: 160,
         height: 40,
         decoration: BoxDecoration(
-          color: Colors.grey[300], // Background color
+          color: Colors.grey[300],
           borderRadius: BorderRadius.circular(20),
         ),
         child: Stack(
+          alignment: Alignment.center,
           children: [
-            // Sliding effect
+            // Animated sliding effect for the selection indicator
             AnimatedAlign(
-              duration: Duration(milliseconds: 200),
+              duration: const Duration(milliseconds: 200),
               alignment: isOption1Selected
                   ? Alignment.centerLeft
                   : Alignment.centerRight,
@@ -206,31 +321,44 @@ class _SlidingButtonState extends State<SlidingButton> {
                 width: 80,
                 height: 40,
                 decoration: BoxDecoration(
-                  color: Colors.blue, // Active selection color
+                  color: Colors.blue,
                   borderRadius: BorderRadius.circular(20),
                 ),
               ),
             ),
-            // Option labels
-            Align(
-              alignment: Alignment.centerLeft,
-              child: Padding(
-                padding: EdgeInsets.only(left: 16),
-                child: Text(
-                  'Doctor',
-                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+            // Row to hold the option labels with reduced padding
+            const Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Padding(
+                  padding: EdgeInsets.only(left: 4),
+                  child: FittedBox(
+                    fit: BoxFit.scaleDown,
+                    child: Text(
+                      'Doctor',
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.black,
+                      ),
+                    ),
+                  ),
                 ),
-              ),
-            ),
-            Align(
-              alignment: Alignment.centerRight,
-              child: Padding(
-                padding: EdgeInsets.only(right: 16),
-                child: Text(
-                  'Hospital',
-                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+                Padding(
+                  padding: EdgeInsets.only(right: 4),
+                  child: FittedBox(
+                    fit: BoxFit.scaleDown,
+                    child: Text(
+                      'Hospital',
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.black,
+                      ),
+                    ),
+                  ),
                 ),
-              ),
+              ],
             ),
           ],
         ),
