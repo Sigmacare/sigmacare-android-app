@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+import 'package:sigmacare_android_app/models/hospital_model.dart';
 
 class BookingPage extends StatefulWidget {
   const BookingPage({super.key});
@@ -12,7 +13,7 @@ class BookingPage extends StatefulWidget {
 class _BookingPageState extends State<BookingPage> {
   bool isDoctorSelected = true;
 
-  // Dummy data for doctors
+  // Dummy data for doctors remains unchanged.
   final List<Map<String, String>> doctors = [
     {
       'name': 'Ranjana Maheshwari',
@@ -37,27 +38,15 @@ class _BookingPageState extends State<BookingPage> {
     },
   ];
 
-  // Fetch hospital details from your API endpoint and map to expected keys.
-  Future<List<Map<String, String>>> fetchHospitalDetails() async {
+  // Fetch hospital details from your API endpoint and convert them using HospitalModel.
+  Future<List<HospitalModel>> fetchHospitalDetails() async {
     const String url = 'https://sigmacare-backend.onrender.com/api/hospitals';
     try {
       final response = await http.get(Uri.parse(url));
       if (response.statusCode == 200) {
         final List<dynamic> data = jsonDecode(response.body);
-        // Map each hospital object to a Map<String, String> using default values for missing fields.
-        return data.map<Map<String, String>>((hospital) {
-          return {
-            'name': hospital['name']?.toString() ?? '',
-            // Use the 'address' field as location; adjust as needed.
-            'location': hospital['address']?.toString() ?? '',
-            // Default specialization for a hospital.
-            'specialization': 'General Hospital',
-            // Provide a default rating if not provided.
-            'rating': 'N/A',
-            // Use a placeholder image asset if not provided.
-            'image': 'lib/assets/hospital1.jpg',
-          };
-        }).toList();
+        // Use your model's static method to convert JSON list to HospitalModel list.
+        return HospitalModel.fromJsonList(data);
       } else {
         throw Exception(
             "Failed to load hospitals (status code: ${response.statusCode})");
@@ -70,7 +59,6 @@ class _BookingPageState extends State<BookingPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Booking')),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
@@ -131,7 +119,7 @@ class _BookingPageState extends State<BookingPage> {
                         );
                       },
                     )
-                  : FutureBuilder<List<Map<String, String>>>(
+                  : FutureBuilder<List<HospitalModel>>(
                       future: fetchHospitalDetails(),
                       builder: (context, snapshot) {
                         if (snapshot.connectionState ==
@@ -152,11 +140,17 @@ class _BookingPageState extends State<BookingPage> {
                           itemBuilder: (context, index) {
                             final hospital = hospitalList[index];
                             return HospitalCard(
-                              name: hospital['name']!,
-                              location: hospital['location']!,
-                              specialization: hospital['specialization']!,
-                              rating: hospital['rating']!,
-                              imagePath: hospital['image']!,
+                              name: hospital.hospitalName,
+                              // Combining city and state as location.
+                              location:
+                                  '${hospital.hospitalCity}, ${hospital.hospitalState}',
+                              // Use a default specialization if needed.
+                              specialization: 'General Hospital',
+                              rating: hospital.hospitalRating,
+                              // Use hospitalImage; if empty, consider a placeholder.
+                              imagePath: hospital.hospitalImage.isNotEmpty
+                                  ? hospital.hospitalImage
+                                  : 'lib/assets/hospital1.jpg',
                             );
                           },
                         );
@@ -170,7 +164,7 @@ class _BookingPageState extends State<BookingPage> {
   }
 }
 
-// DoctorCard widget
+// DoctorCard widget remains unchanged.
 class DoctorCard extends StatelessWidget {
   final String name;
   final String location;
@@ -218,7 +212,7 @@ class DoctorCard extends StatelessWidget {
   }
 }
 
-// HospitalCard widget (similar to DoctorCard)
+// HospitalCard widget uses fields from HospitalModel.
 class HospitalCard extends StatelessWidget {
   final String name;
   final String location;
@@ -266,7 +260,7 @@ class HospitalCard extends StatelessWidget {
   }
 }
 
-// SlidingButton widget with callback support
+// SlidingButton widget with callback support remains unchanged.
 class SlidingButton extends StatefulWidget {
   final bool isOption1Selected;
   final ValueChanged<bool> onToggle;
