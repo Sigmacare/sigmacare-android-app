@@ -40,7 +40,7 @@ dependencies:
   flutter_dotenv: ^5.2.1
   font_awesome_flutter: ^10.8.0
   table_calendar: ^3.1.3
-  http: ^1.3.0
+  http: ^1.2.0
 
 dev_dependencies:
   flutter_test:
@@ -72,6 +72,7 @@ flutter:
     - lib/assets/doctor1.jpg
     - lib/assets/doctor2.jpg
     - lib/assets/doctor3.jpg
+    - lib/assets/logo.png
 
   #   - images/a_dot_burr.jpeg
   #   - images/a_dot_ham.jpeg

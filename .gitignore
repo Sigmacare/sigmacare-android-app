@@ -3,7 +3,19 @@
 *.log
 *.pyc
 *.swp
+*.tmp
+*.bak
+*.old
+*.orig
 .DS_Store
+Thumbs.db
+ehthumbs.db
+*.swo
+*.swn
+*.swp
+*.sublime-project
+*.sublime-workspace
+*.vscode/
 .atom/
 .buildlog/
 .history
@@ -15,11 +27,13 @@ migrate_working_dir/
 *.ipr
 *.iws
 .idea/
+out/
+.gradle/
+captures/
+*.jks
 
-# The .vscode folder contains launch configuration and tasks you configure in
-# VS Code which you may wish to be included in version control, so this line
-# is commented out by default.
-#.vscode/
+# VS Code settings
+.vscode/
 
 # Flutter/Dart/Pub related
 **/doc/api/
@@ -29,11 +43,43 @@ migrate_working_dir/
 .flutter-plugins-dependencies
 .pub-cache/
 .pub/
-/build/
-/android/
-/linux/
-/ios/
-/windows/
+build/
+android/.gradle/
+android/app/build/
+android/local.properties
+ios/Pods/
+ios/.symlinks/
+ios/Flutter/Flutter.framework
+ios/Flutter/App.framework
+ios/Flutter/Generated.xcconfig
+ios/.dart_tool/
+ios/.idea/
+ios/Flutter/ephemeral/
+linux/flutter/ephemeral/
+linux/.dart_tool/
+linux/build/
+macos/Flutter/ephemeral/
+macos/.dart_tool/
+macos/build/
+windows/flutter/ephemeral/
+windows/.dart_tool/
+windows/build/
+web/.dart_tool/
+web/build/
+web/main.dart.js
+web/main.dart.js.deps
+web/main.dart.js.map
+web/flutter_service_worker.js
+
+# JetBrains IDEs
+*.ipr
+*.iws
+*.idea/
+
+# Android Studio build artifacts
+android/app/debug
+android/app/profile
+android/app/release
 
 # Symbolication related
 app.*.symbols
@@ -41,9 +87,26 @@ app.*.symbols
 # Obfuscation related
 app.*.map.json
 
-# Android Studio will place build artifacts here
-/android/app/debug
-/android/app/profile
-/android/app/release
-
+# Environment variables
 *.env
+.env.local
+.env.development
+.env.production
+.env.test
+.env.*
+
+# Firebase related
+firebase_app_id_file.json
+serviceAccountKey.json
+
+# Node.js dependencies (if applicable)
+node_modules/
+npm-debug.log
+yarn-error.log
+package-lock.json
+yarn.lock
+.pnp.js
+.pnp.cjs
+.pnp.loader.mjs
+.pnp.loader.js
+.pnp.loader.cjs

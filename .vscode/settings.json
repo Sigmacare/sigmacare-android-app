@@ -1,3 +1,4 @@
 {
-  "cmake.sourceDirectory": "C:/Contents/GitPjs/sigmacare-android-app/linux"
+  "cmake.sourceDirectory": "C:/Contents/GitPjs/sigmacare-android-app/linux",
+  "java.configuration.updateBuildConfiguration": "interactive"
 }
