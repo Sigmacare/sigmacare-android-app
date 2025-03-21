@@ -55,7 +55,7 @@ class _BottomNavigatorState extends State<BottomNavigator> {
     return Scaffold(
       appBar: AppBar(
         title: Text(_appBarTitles[_selectedIndex]),
-        backgroundColor: Colors.green[900],
+        backgroundColor: Colors.blue[700],
       ),
       body: _pages[_selectedIndex],
       drawer: Drawer(
