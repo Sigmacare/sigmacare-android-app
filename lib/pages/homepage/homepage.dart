@@ -1,5 +1,11 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
+import 'package:sigmacare_android_app/models/sensor_data.dart';
+import 'dart:async';
 import 'dart:math';
+import 'package:web_socket_channel/web_socket_channel.dart';
+import 'package:web_socket_channel/status.dart' as status;
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -23,42 +29,98 @@ class _HomePageState extends State<HomePage> {
   // Battery level
   double batteryLevel = 0.85;
 
-  // Function to handle button presses
+  // WebSocket variables
+  WebSocketChannel? _channel;
+
+  @override
+  void initState() {
+    super.initState();
+    _initWebSocket();
+  }
+
+  /// Initialize WebSocket connection and handle errors.
+  void _initWebSocket() {
+    try {
+      // Replace with your actual WebSocket server URL
+      _channel = WebSocketChannel.connect(
+        Uri.parse('ws://192.168.1.39:8080'),
+      );
+
+      _channel!.stream.listen(
+        (message) {
+          //Parse json message
+          final data = jsonDecode(message);
+          print(data["heartRate"]);
+          final sensorData = SensorData.fromJson(data);
+          setState(() {
+            heartRate = sensorData.heartRate;
+            oxygenLevel = sensorData.oxygen;
+            motionStatus = sensorData.accelX > 0.5 ? "Running" : "Walking";
+          });
+        },
+      );
+    } catch (e) {
+      setState(() {
+        print(e);
+      });
+    }
+  }
+
+  /// Cleanly close the WebSocket connection.
+  void _closeWebSocket() {
+    _channel?.sink.close(status.normalClosure);
+    _channel = null;
+  }
+
+  /// Retry the connection.
+  void _retryConnection() {
+    _closeWebSocket();
+    _initWebSocket();
+  }
+
+  // Function to handle button presses in UI.
   void _onButtonPress(String buttonName) {
     print("Button pressed: $buttonName");
-    // Show a snackbar to indicate button press
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text("$buttonName view requested")),
     );
   }
 
   @override
+  void dispose() {
+    _closeWebSocket();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
+      appBar: AppBar(
+        title: const Text('Health Monitor'),
+      ),
       body: SingleChildScrollView(
         child: Padding(
           padding: const EdgeInsets.all(16.0),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              const SizedBox(height: 16),
               // Heart Health Card
               _buildHealthCard(
-                title: "Cardiac monitor",
+                title: "Cardiac Monitor",
                 icon: Icons.favorite,
                 iconColor: Colors.red,
                 bgColor: Colors.red[50]!,
                 value: "$heartRate BPM",
-                subtitle: "Heart rate",
+                subtitle: "Heart Rate",
                 details: "Last updated: Just now",
                 onViewDetails: () => _onButtonPress("Heart Rate Details"),
                 chart: _buildHeartRateChart(),
               ),
-
               const SizedBox(height: 16),
-
               // Oxygen Level Card
               _buildHealthCard(
-                title: "Oxygen saturation",
+                title: "Oxygen Saturation",
                 icon: Icons.air,
                 iconColor: Colors.blue,
                 bgColor: Colors.blue[50]!,
@@ -68,14 +130,11 @@ class _HomePageState extends State<HomePage> {
                 onViewDetails: () => _onButtonPress("Oxygen Level Details"),
                 chart: _buildOxygenLevelChart(),
               ),
-
               const SizedBox(height: 16),
-
               // Status and Location Cards in a Row
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  // Status Card
                   _buildStatusCard(
                     title: "Motion Status",
                     icon: _getMotionIcon(motionStatus),
@@ -84,8 +143,6 @@ class _HomePageState extends State<HomePage> {
                     iconColor: Colors.green,
                     onViewDetails: () => _onButtonPress("Motion Details"),
                   ),
-
-                  // Location Card
                   _buildStatusCard(
                     title: "Location",
                     icon: Icons.location_on,
@@ -96,9 +153,7 @@ class _HomePageState extends State<HomePage> {
                   ),
                 ],
               ),
-
               const SizedBox(height: 16),
-
               // Battery and Device Card
               Container(
                 decoration: BoxDecoration(
@@ -120,11 +175,15 @@ class _HomePageState extends State<HomePage> {
                         color: Colors.teal,
                         size: 36,
                       ),
-                      title: const Text('SimaCare Band1',
-                          style: TextStyle(
-                              fontSize: 18, fontWeight: FontWeight.bold)),
-                      subtitle: const Text('Connected',
-                          style: TextStyle(fontSize: 14, color: Colors.green)),
+                      title: const Text(
+                        'SimaCare Band1',
+                        style: TextStyle(
+                            fontSize: 18, fontWeight: FontWeight.bold),
+                      ),
+                      subtitle: const Text(
+                        'Connected',
+                        style: TextStyle(fontSize: 14, color: Colors.green),
+                      ),
                       trailing: IconButton(
                         icon: const Icon(Icons.more_vert),
                         onPressed: () => _onButtonPress("Device Settings"),
@@ -187,10 +246,8 @@ class _HomePageState extends State<HomePage> {
                   ],
                 ),
               ),
-
               const SizedBox(height: 16),
-
-              // Diagnostic button
+              // Diagnostic Button
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton.icon(
@@ -214,7 +271,7 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-  // Widget for health cards (heart rate, oxygen)
+  // Widget for health cards (heart rate, oxygen saturation)
   Widget _buildHealthCard({
     required String title,
     required IconData icon,
@@ -381,7 +438,7 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-  // Get appropriate motion icon based on status
+  // Get appropriate motion icon based on status.
   IconData _getMotionIcon(String status) {
     switch (status.toLowerCase()) {
       case 'walking':
@@ -399,10 +456,9 @@ class _HomePageState extends State<HomePage> {
     }
   }
 
-  // Get appropriate battery icon based on level
+  // Get appropriate battery icon based on level.
   Widget _getBatteryIcon(double level) {
     IconData icon;
-
     if (level > 0.8) {
       icon = Icons.battery_full;
     } else if (level > 0.6) {
@@ -414,7 +470,6 @@ class _HomePageState extends State<HomePage> {
     } else {
       icon = Icons.battery_alert;
     }
-
     return Icon(
       icon,
       color: _getBatteryColor(level),
@@ -422,7 +477,7 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-  // Get appropriate battery color based on level
+  // Get appropriate battery color based on level.
   Color _getBatteryColor(double level) {
     if (level > 0.5) {
       return Colors.green;
@@ -433,7 +488,7 @@ class _HomePageState extends State<HomePage> {
     }
   }
 
-  // Simple heart rate chart visualization
+  // Simple heart rate chart visualization.
   Widget _buildHeartRateChart() {
     return Container(
       height: 80,
@@ -445,7 +500,7 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-  // Simple oxygen level chart visualization
+  // Simple oxygen level chart visualization.
   Widget _buildOxygenLevelChart() {
     return Container(
       height: 80,
@@ -458,10 +513,9 @@ class _HomePageState extends State<HomePage> {
   }
 }
 
-// Custom painter for heart rate chart
+// Custom painter for heart rate chart.
 class HeartRateChartPainter extends CustomPainter {
   final int heartRate;
-
   HeartRateChartPainter({required this.heartRate});
 
   @override
@@ -472,29 +526,19 @@ class HeartRateChartPainter extends CustomPainter {
       ..style = PaintingStyle.stroke;
 
     final path = Path();
-
-    // Use heart rate to influence the waveform
     final amplitude = 20.0;
-    final frequency =
-        0.05 + (heartRate - 60) / 200; // Make frequency respond to heart rate
-
+    final frequency = 0.05 + (heartRate - 60) / 200;
     path.moveTo(0, size.height / 2);
 
     for (double x = 0; x < size.width; x++) {
-      // Add some randomness for realism
       final random = Random().nextDouble() * 4 - 2;
-
-      // Create heart beat spikes periodically
       final spikeX = (x / size.width * 10).floor();
       final spike =
           spikeX % 2 == 0 && (x % (size.width / 10) < 10) ? 15.0 : 0.0;
-
       final y =
           size.height / 2 + sin(x * frequency) * amplitude + spike + random;
-
       path.lineTo(x, y);
     }
-
     canvas.drawPath(path, paint);
   }
 
@@ -502,10 +546,9 @@ class HeartRateChartPainter extends CustomPainter {
   bool shouldRepaint(covariant CustomPainter oldDelegate) => true;
 }
 
-// Custom painter for oxygen level chart
+// Custom painter for oxygen level chart.
 class OxygenLevelChartPainter extends CustomPainter {
   final int oxygenLevel;
-
   OxygenLevelChartPainter({required this.oxygenLevel});
 
   @override
@@ -516,31 +559,23 @@ class OxygenLevelChartPainter extends CustomPainter {
       ..style = PaintingStyle.stroke;
 
     final path = Path();
-
-    // Use oxygen level to influence the waveform
     final baseHeight = size.height - (oxygenLevel - 90) * (size.height / 10);
-
     path.moveTo(0, baseHeight);
 
-    // Draw smooth waves
     for (double x = 0; x < size.width; x++) {
       final random = Random().nextDouble() * 2 - 1;
       final y = baseHeight + sin(x * 0.02) * 5 + random;
       path.lineTo(x, y);
     }
-
     canvas.drawPath(path, paint);
 
-    // Draw reference line for normal range
     final normalRangePaint = Paint()
       ..color = Colors.green.withOpacity(0.5)
       ..strokeWidth = 1
       ..style = PaintingStyle.stroke;
-
     final normalRange = Path();
     normalRange.moveTo(0, size.height * 0.2);
     normalRange.lineTo(size.width, size.height * 0.2);
-
     canvas.drawPath(normalRange, normalRangePaint);
   }
 
