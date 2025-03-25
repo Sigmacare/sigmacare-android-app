@@ -43,8 +43,16 @@ class _HomePageState extends State<HomePage> {
     try {
       // Replace with your actual WebSocket server URL
       _channel = WebSocketChannel.connect(
-        Uri.parse('ws://192.168.1.39:8080'),
+        Uri.parse('ws://172.20.10.3:8080'),
       );
+      //send message to subscribe
+
+      // Send message to subscribe
+      final subscriptionMessage = jsonEncode({
+        'type': 'subscribe',
+        'device_id': '1', // Replace with actual device_id
+      });
+      _channel!.sink.add(subscriptionMessage);
 
       _channel!.stream.listen(
         (message) {
