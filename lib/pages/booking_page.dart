@@ -37,9 +37,11 @@ class _BookingPageState extends State<BookingPage> {
     try {
       _token = await _storage.read(key: 'auth_token');
       if (_token == null) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Please login to book appointments')),
-        );
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Please login to book appointments')),
+          );
+        }
         return;
       }
       await Future.wait([
@@ -47,40 +49,50 @@ class _BookingPageState extends State<BookingPage> {
         _fetchPatients(),
       ]);
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error fetching data: $e')),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error fetching data: $e')),
+        );
+      }
     }
   }
 
   Future<void> _fetchHospitals() async {
     try {
-      setState(() => isLoading = true);
+      if (mounted) {
+        setState(() => isLoading = true);
+      }
       const String url = 'https://sigmacare-backend.onrender.com/api/hospitals';
       final response = await http.get(Uri.parse(url));
 
       if (response.statusCode == 200) {
         final List<dynamic> data = jsonDecode(response.body);
-        setState(() {
-          hospitals = HospitalModel.fromJsonList(data);
-          isLoading = false;
-        });
+        if (mounted) {
+          setState(() {
+            hospitals = HospitalModel.fromJsonList(data);
+            isLoading = false;
+          });
+        }
       } else {
         throw Exception('Failed to load hospitals');
       }
     } catch (e) {
-      setState(() {
-        isLoading = false;
-      });
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error: $e')),
-      );
+      if (mounted) {
+        setState(() {
+          isLoading = false;
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error: $e')),
+        );
+      }
     }
   }
 
   Future<void> _fetchDoctors(String hospitalId) async {
     try {
-      setState(() => isLoading = true);
+      if (mounted) {
+        setState(() => isLoading = true);
+      }
       final response = await http.get(
         Uri.parse(
             'https://sigmacare-backend.onrender.com/api/hospitals/$hospitalId/doctors'),
@@ -91,20 +103,24 @@ class _BookingPageState extends State<BookingPage> {
 
       if (response.statusCode == 200) {
         final List<dynamic> data = jsonDecode(response.body);
-        setState(() {
-          doctors = data.map((doctor) => Doctor.fromJson(doctor)).toList();
-          isLoading = false;
-        });
+        if (mounted) {
+          setState(() {
+            doctors = data.map((doctor) => Doctor.fromJson(doctor)).toList();
+            isLoading = false;
+          });
+        }
       } else {
         throw Exception('Failed to load doctors');
       }
     } catch (e) {
-      setState(() {
-        isLoading = false;
-      });
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error: $e')),
-      );
+      if (mounted) {
+        setState(() {
+          isLoading = false;
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error: $e')),
+        );
+      }
     }
   }
 
@@ -119,17 +135,100 @@ class _BookingPageState extends State<BookingPage> {
 
       if (response.statusCode == 200) {
         final List<dynamic> data = jsonDecode(response.body);
-        setState(() {
-          patients = data.map((patient) => Patient.fromJson(patient)).toList();
-        });
+        if (mounted) {
+          setState(() {
+            patients =
+                data.map((patient) => Patient.fromJson(patient)).toList();
+          });
+        }
       } else {
         throw Exception('Failed to load patients');
       }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error fetching patients: $e')),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error fetching patients: $e')),
+        );
+      }
     }
+  }
+
+  void _showSuccessDialog() {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) {
+        return WillPopScope(
+          onWillPop: () async => false,
+          child: AlertDialog(
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(20),
+            ),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(
+                  Icons.check_circle,
+                  color: Colors.green,
+                  size: 80,
+                ),
+                const SizedBox(height: 20),
+                const Text(
+                  'Booking Successful!',
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 10),
+                const Text(
+                  'Your appointment has been booked successfully.',
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 20),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                  children: [
+                    ElevatedButton(
+                      onPressed: () {
+                        Navigator.of(context).pop(); // Close dialog
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.grey,
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 20,
+                          vertical: 12,
+                        ),
+                      ),
+                      child: const Text('Close'),
+                    ),
+                    ElevatedButton(
+                      onPressed: () {
+                        Navigator.of(context).pop(); // Close dialog
+                        Navigator.pushReplacement(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const BookingPage(),
+                          ),
+                        );
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.green,
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 20,
+                          vertical: 12,
+                        ),
+                      ),
+                      child: const Text('New Booking'),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
   }
 
   Future<void> _bookAppointment() async {
@@ -151,7 +250,31 @@ class _BookingPageState extends State<BookingPage> {
       return;
     }
 
+    // Show loading indicator
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) {
+        return const Dialog(
+          child: Padding(
+            padding: EdgeInsets.all(20.0),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                CircularProgressIndicator(),
+                SizedBox(height: 16),
+                Text('Booking appointment...'),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+
     try {
+      // Format the date to match the API's expected format
+      final formattedDate = selectedDate!.toUtc().toIso8601String();
+
       final response = await http.post(
         Uri.parse('https://sigmacare-backend.onrender.com/api/appointment'),
         headers: {
@@ -162,49 +285,56 @@ class _BookingPageState extends State<BookingPage> {
           'hospitalId': selectedHospitalId,
           'doctorId': selectedDoctorId,
           'patientId': selectedPatientId,
-          'date': selectedDate!.toIso8601String(),
+          'date': formattedDate,
         }),
       );
 
+      // First close the loading dialog
+      if (mounted) {
+        Navigator.of(context).pop();
+      }
+
       if (response.statusCode == 200) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Appointment booked successfully')),
-        );
         // Reset selections
-        setState(() {
-          selectedHospitalId = null;
-          selectedDoctorId = null;
-          selectedPatientId = null;
-          selectedDate = null;
-          showCalendar = false;
-        });
+        if (mounted) {
+          setState(() {
+            selectedHospitalId = null;
+            selectedDoctorId = null;
+            selectedPatientId = null;
+            selectedDate = null;
+            showCalendar = false;
+          });
+
+          // Call method to show success dialog after a short delay
+          // This helps ensure the loading dialog is fully closed first
+          Future.delayed(const Duration(milliseconds: 300), () {
+            if (mounted) {
+              _showSuccessDialog();
+            }
+          });
+        }
       } else {
-        throw Exception('Failed to book appointment');
+        final errorMessage = jsonDecode(response.body)['message'] ??
+            'Failed to book appointment';
+        throw Exception(errorMessage);
       }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error: $e')),
-      );
+      // Make sure we close loading dialog if there's an error
+      if (mounted && Navigator.canPop(context)) {
+        Navigator.of(context).pop();
+      }
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error: $e')),
+        );
+      }
     }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Book Appointment'),
-        leading: selectedHospitalId != null
-            ? IconButton(
-                icon: const Icon(Icons.arrow_back),
-                onPressed: () {
-                  setState(() {
-                    selectedHospitalId = null;
-                    doctors = [];
-                  });
-                },
-              )
-            : null,
-      ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
@@ -310,7 +440,8 @@ class _BookingPageState extends State<BookingPage> {
                               },
                               title: Text(
                                 patient.name,
-                                style: const TextStyle(fontWeight: FontWeight.bold),
+                                style: const TextStyle(
+                                    fontWeight: FontWeight.bold),
                               ),
                               subtitle: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
