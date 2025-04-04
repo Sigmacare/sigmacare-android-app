@@ -1,9 +1,11 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:sigmacare_android_app/models/hospital_model.dart';
-// Import your hospital details page (adjust the path as needed)
-import 'package:sigmacare_android_app/pages/hospital_details_page.dart';
+import 'package:sigmacare_android_app/models/doctor_model.dart';
+import 'package:sigmacare_android_app/models/patient_model.dart';
+import 'package:table_calendar/table_calendar.dart';
 
 class BookingPage extends StatefulWidget {
   const BookingPage({super.key});
@@ -13,55 +15,326 @@ class BookingPage extends StatefulWidget {
 }
 
 class _BookingPageState extends State<BookingPage> {
-  bool isDoctorSelected = true;
+  final _storage = const FlutterSecureStorage();
+  List<HospitalModel> hospitals = [];
+  List<Doctor> doctors = [];
+  List<Patient> patients = [];
+  bool isLoading = true;
+  String? selectedHospitalId;
+  String? selectedDoctorId;
+  String? selectedPatientId;
+  DateTime? selectedDate;
+  bool showCalendar = false;
+  String? _token;
 
-  // Dummy data for doctors remains unchanged.
-  final List<Map<String, String>> doctors = [
-    {
-      'name': 'Ranjana Maheshwari',
-      'location': 'Kochi, Kerala',
-      'specialization': 'Mental health and behavioural sciences, psychiatry',
-      'rating': '6.7',
-      'image': 'lib/assets/doctor1.jpg',
-    },
-    {
-      'name': 'Lalitha Digambhar',
-      'location': 'Kochi, Kerala',
-      'specialization': 'Mental health and behavioural sciences, psychiatry',
-      'rating': '6.7',
-      'image': 'lib/assets/doctor2.jpg',
-    },
-    {
-      'name': 'John Doe',
-      'location': 'Kochi, Kerala',
-      'specialization': 'Gastroenterologist',
-      'rating': '5.7',
-      'image': 'lib/assets/doctor3.jpg',
-    },
-  ];
+  @override
+  void initState() {
+    super.initState();
+    _fetchTokenAndData();
+  }
 
-  // Fetch hospital details from your API endpoint and convert them using HospitalModel.
-  Future<List<HospitalModel>> fetchHospitalDetails() async {
-    const String url = 'https://sigmacare-backend.onrender.com/api/hospitals';
+  Future<void> _fetchTokenAndData() async {
     try {
+      _token = await _storage.read(key: 'auth_token');
+      if (_token == null) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Please login to book appointments')),
+          );
+        }
+        return;
+      }
+      await Future.wait([
+        _fetchHospitals(),
+        _fetchPatients(),
+      ]);
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error fetching data: $e')),
+        );
+      }
+    }
+  }
+
+  Future<void> _fetchHospitals() async {
+    try {
+      if (mounted) {
+        setState(() => isLoading = true);
+      }
+      const String url = 'https://sigmacare-backend.onrender.com/api/hospitals';
       final response = await http.get(Uri.parse(url));
+
       if (response.statusCode == 200) {
         final List<dynamic> data = jsonDecode(response.body);
-        // Use HospitalModel.fromJsonList to convert the response into a list of models.
-        return HospitalModel.fromJsonList(data);
+        if (mounted) {
+          setState(() {
+            hospitals = HospitalModel.fromJsonList(data);
+            isLoading = false;
+          });
+        }
       } else {
-        throw Exception(
-            "Failed to load hospitals (status code: ${response.statusCode})");
+        throw Exception('Failed to load hospitals');
       }
     } catch (e) {
-      throw Exception("Error fetching hospitals: $e");
+      if (mounted) {
+        setState(() {
+          isLoading = false;
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error: $e')),
+        );
+      }
+    }
+  }
+
+  Future<void> _fetchDoctors(String hospitalId) async {
+    try {
+      if (mounted) {
+        setState(() => isLoading = true);
+      }
+      final response = await http.get(
+        Uri.parse(
+            'https://sigmacare-backend.onrender.com/api/hospitals/$hospitalId/doctors'),
+        headers: {
+          'Authorization': 'Bearer $_token',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        final List<dynamic> data = jsonDecode(response.body);
+        if (mounted) {
+          setState(() {
+            doctors = data.map((doctor) => Doctor.fromJson(doctor)).toList();
+            isLoading = false;
+          });
+        }
+      } else {
+        throw Exception('Failed to load doctors');
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          isLoading = false;
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error: $e')),
+        );
+      }
+    }
+  }
+
+  Future<void> _fetchPatients() async {
+    try {
+      final response = await http.get(
+        Uri.parse('https://sigmacare-backend.onrender.com/api/patients'),
+        headers: {
+          'Authorization': 'Bearer $_token',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        final List<dynamic> data = jsonDecode(response.body);
+        if (mounted) {
+          setState(() {
+            patients =
+                data.map((patient) => Patient.fromJson(patient)).toList();
+          });
+        }
+      } else {
+        throw Exception('Failed to load patients');
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error fetching patients: $e')),
+        );
+      }
+    }
+  }
+
+  void _showSuccessDialog() {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) {
+        return WillPopScope(
+          onWillPop: () async => false,
+          child: AlertDialog(
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(20),
+            ),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(
+                  Icons.check_circle,
+                  color: Colors.green,
+                  size: 80,
+                ),
+                const SizedBox(height: 20),
+                const Text(
+                  'Booking Successful!',
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 10),
+                const Text(
+                  'Your appointment has been booked successfully.',
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 20),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                  children: [
+                    ElevatedButton(
+                      onPressed: () {
+                        Navigator.of(context).pop(); // Close dialog
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.grey,
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 20,
+                          vertical: 12,
+                        ),
+                      ),
+                      child: const Text('Close'),
+                    ),
+                    ElevatedButton(
+                      onPressed: () {
+                        Navigator.of(context).pop(); // Close dialog
+                        Navigator.pushReplacement(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const BookingPage(),
+                          ),
+                        );
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.green,
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 20,
+                          vertical: 12,
+                        ),
+                      ),
+                      child: const Text('New Booking'),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Future<void> _bookAppointment() async {
+    if (_token == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please login to book appointments')),
+      );
+      return;
+    }
+
+    if (selectedHospitalId == null ||
+        selectedDoctorId == null ||
+        selectedDate == null ||
+        selectedPatientId == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+            content: Text('Please select hospital, doctor, patient and date')),
+      );
+      return;
+    }
+
+    // Show loading indicator
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) {
+        return const Dialog(
+          child: Padding(
+            padding: EdgeInsets.all(20.0),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                CircularProgressIndicator(),
+                SizedBox(height: 16),
+                Text('Booking appointment...'),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+
+    try {
+      // Format the date to match the API's expected format
+      final formattedDate = selectedDate!.toUtc().toIso8601String();
+
+      final response = await http.post(
+        Uri.parse('https://sigmacare-backend.onrender.com/api/appointment'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $_token',
+        },
+        body: jsonEncode({
+          'hospitalId': selectedHospitalId,
+          'doctorId': selectedDoctorId,
+          'patientId': selectedPatientId,
+          'date': formattedDate,
+        }),
+      );
+
+      // First close the loading dialog
+      if (mounted) {
+        Navigator.of(context).pop();
+      }
+
+      if (response.statusCode == 200) {
+        // Reset selections
+        if (mounted) {
+          setState(() {
+            selectedHospitalId = null;
+            selectedDoctorId = null;
+            selectedPatientId = null;
+            selectedDate = null;
+            showCalendar = false;
+          });
+
+          // Call method to show success dialog after a short delay
+          // This helps ensure the loading dialog is fully closed first
+          Future.delayed(const Duration(milliseconds: 300), () {
+            if (mounted) {
+              _showSuccessDialog();
+            }
+          });
+        }
+      } else {
+        final errorMessage = jsonDecode(response.body)['message'] ??
+            'Failed to book appointment';
+        throw Exception(errorMessage);
+      }
+    } catch (e) {
+      // Make sure we close loading dialog if there's an error
+      if (mounted && Navigator.canPop(context)) {
+        Navigator.of(context).pop();
+      }
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error: $e')),
+        );
+      }
     }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Booking')),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
@@ -71,7 +344,6 @@ class _BookingPageState extends State<BookingPage> {
             TextField(
               decoration: InputDecoration(
                 prefixIcon: const Icon(Icons.search),
-                suffixIcon: const Icon(Icons.filter_list),
                 hintText: 'Search...',
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(8.0),
@@ -79,133 +351,139 @@ class _BookingPageState extends State<BookingPage> {
               ),
             ),
             const SizedBox(height: 16),
-            // Header row with title and sliding toggle button
-            Row(
-              children: [
-                Text(
-                  isDoctorSelected ? 'Doctors' : 'Hospitals',
-                  style: const TextStyle(
-                      fontSize: 18, fontWeight: FontWeight.bold),
+            if (selectedHospitalId == null) ...[
+              const Text(
+                'Select a Hospital',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 8),
+              Expanded(
+                child: isLoading
+                    ? const Center(child: CircularProgressIndicator())
+                    : ListView.builder(
+                        itemCount: hospitals.length,
+                        itemBuilder: (context, index) {
+                          final hospital = hospitals[index];
+                          return HospitalCard(
+                            hospitalId: hospital.hospitalId,
+                            name: hospital.hospitalName,
+                            location:
+                                '${hospital.hospitalCity}, ${hospital.hospitalState}',
+                            specialization: 'General Hospital',
+                            rating: hospital.hospitalRating,
+                            imagePath: hospital.hospitalImage.isNotEmpty
+                                ? hospital.hospitalImage
+                                : 'lib/assets/hospital_placeholder.jpg',
+                            onTap: () {
+                              setState(() {
+                                selectedHospitalId = hospital.hospitalId;
+                              });
+                              _fetchDoctors(hospital.hospitalId);
+                            },
+                          );
+                        },
+                      ),
+              ),
+            ] else if (selectedDoctorId == null) ...[
+              const Text(
+                'Select a Doctor',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 8),
+              Expanded(
+                child: isLoading
+                    ? const Center(child: CircularProgressIndicator())
+                    : ListView.builder(
+                        itemCount: doctors.length,
+                        itemBuilder: (context, index) {
+                          final doctor = doctors[index];
+                          return DoctorCard(
+                            name: doctor.name,
+                            location: '${doctor.experience} years experience',
+                            specialization: 'General Practitioner',
+                            rating: '4.5',
+                            imagePath: 'lib/assets/doctor_placeholder.jpg',
+                            isSelected: selectedDoctorId == doctor.id,
+                            onTap: () {
+                              setState(() {
+                                selectedDoctorId = doctor.id;
+                              });
+                            },
+                          );
+                        },
+                      ),
+              ),
+            ] else if (selectedPatientId == null) ...[
+              const Text(
+                'Select a Patient',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 8),
+              Expanded(
+                child: patients.isEmpty
+                    ? const Center(child: Text('No patients found'))
+                    : ListView.builder(
+                        itemCount: patients.length,
+                        itemBuilder: (context, index) {
+                          final patient = patients[index];
+                          return Card(
+                            margin: const EdgeInsets.symmetric(vertical: 8),
+                            color: selectedPatientId == patient.id
+                                ? Colors.blue.shade50
+                                : null,
+                            child: ListTile(
+                              onTap: () {
+                                setState(() {
+                                  selectedPatientId = patient.id;
+                                  showCalendar = true;
+                                });
+                              },
+                              title: Text(
+                                patient.name,
+                                style: const TextStyle(
+                                    fontWeight: FontWeight.bold),
+                              ),
+                              subtitle: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text('Age: ${patient.age}'),
+                                  Text(
+                                      'Medical Conditions: ${patient.medicalConditions.join(", ")}'),
+                                ],
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+              ),
+            ] else if (showCalendar) ...[
+              const Text(
+                'Select Date',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 8),
+              TableCalendar(
+                firstDay: DateTime.now(),
+                lastDay: DateTime.now().add(const Duration(days: 365)),
+                focusedDay: selectedDate ?? DateTime.now(),
+                selectedDayPredicate: (day) {
+                  return isSameDay(selectedDate, day);
+                },
+                onDaySelected: (selectedDay, focusedDay) {
+                  setState(() {
+                    selectedDate = selectedDay;
+                  });
+                },
+              ),
+              const SizedBox(height: 16),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: _bookAppointment,
+                  child: const Text('Book Appointment'),
                 ),
-                const Spacer(),
-                SlidingButton(
-                  isOption1Selected: isDoctorSelected,
-                  onToggle: (selected) {
-                    setState(() {
-                      isDoctorSelected = selected;
-                    });
-                  },
-                ),
-              ],
-            ),
-            const SizedBox(height: 8),
-            Text(
-              isDoctorSelected
-                  ? 'Consult our experts...'
-                  : 'Find the best hospitals...',
-              style: const TextStyle(fontSize: 14),
-            ),
-            const SizedBox(height: 16),
-            // Display the list of doctors or hospitals
-            Expanded(
-              child: isDoctorSelected
-                  ? ListView.builder(
-                      itemCount: doctors.length,
-                      itemBuilder: (context, index) {
-                        final doctor = doctors[index];
-                        return DoctorCard(
-                          name: doctor['name']!,
-                          location: doctor['location']!,
-                          specialization: doctor['specialization']!,
-                          rating: doctor['rating']!,
-                          imagePath: doctor['image']!,
-                        );
-                      },
-                    )
-                  : FutureBuilder<List<HospitalModel>>(
-                      future: fetchHospitalDetails(),
-                      builder: (context, snapshot) {
-                        if (snapshot.connectionState ==
-                            ConnectionState.waiting) {
-                          return const Center(
-                              child: CircularProgressIndicator());
-                        } else if (snapshot.hasError) {
-                          return Center(
-                              child: Text('Error: ${snapshot.error}'));
-                        } else if (!snapshot.hasData ||
-                            snapshot.data!.isEmpty) {
-                          return const Center(
-                              child: Text('No hospitals found.'));
-                        }
-                        final hospitalList = snapshot.data!;
-                        return ListView.builder(
-                          itemCount: hospitalList.length,
-                          itemBuilder: (context, index) {
-                            final hospital = hospitalList[index];
-                            return HospitalCard(
-                              hospitalId: hospital.hospitalId,
-                              name: hospital.hospitalName,
-                              location:
-                                  '${hospital.hospitalCity}, ${hospital.hospitalState}',
-                              specialization: 'General Hospital',
-                              rating: hospital.hospitalRating,
-                              imagePath: hospital.hospitalImage.isNotEmpty
-                                  ? hospital.hospitalImage
-                                  : 'lib/assets/hospital_placeholder.jpg',
-                            );
-                          },
-                        );
-                      },
-                    ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-// DoctorCard widget remains unchanged.
-class DoctorCard extends StatelessWidget {
-  final String name;
-  final String location;
-  final String specialization;
-  final String rating;
-  final String imagePath;
-
-  const DoctorCard({
-    required this.name,
-    required this.location,
-    required this.specialization,
-    required this.rating,
-    required this.imagePath,
-    super.key,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Card(
-      margin: const EdgeInsets.symmetric(vertical: 8),
-      child: ListTile(
-        leading: CircleAvatar(
-          backgroundImage: AssetImage(imagePath),
-        ),
-        title: Text(
-          name,
-          style: const TextStyle(fontWeight: FontWeight.bold),
-        ),
-        subtitle: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(location),
-            Text(specialization, style: const TextStyle(fontSize: 12)),
-          ],
-        ),
-        trailing: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Icon(Icons.star, color: Colors.amber),
-            Text(rating),
+              ),
+            ],
           ],
         ),
       ),
@@ -220,6 +498,7 @@ class HospitalCard extends StatelessWidget {
   final String specialization;
   final String rating;
   final String imagePath;
+  final VoidCallback onTap;
 
   const HospitalCard({
     required this.hospitalId,
@@ -228,6 +507,7 @@ class HospitalCard extends StatelessWidget {
     required this.specialization,
     required this.rating,
     required this.imagePath,
+    required this.onTap,
     super.key,
   });
 
@@ -236,15 +516,7 @@ class HospitalCard extends StatelessWidget {
     return Card(
       margin: const EdgeInsets.symmetric(vertical: 8),
       child: ListTile(
-        onTap: () {
-          // Now hospitalId is a String, so pass it directly.
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => HospitalDetailsPage(hospitalId: hospitalId),
-            ),
-          );
-        },
+        onTap: onTap,
         leading: CircleAvatar(
           backgroundImage: AssetImage(imagePath),
         ),
@@ -271,100 +543,52 @@ class HospitalCard extends StatelessWidget {
   }
 }
 
-// SlidingButton widget with callback support remains unchanged.
-class SlidingButton extends StatefulWidget {
-  final bool isOption1Selected;
-  final ValueChanged<bool> onToggle;
+class DoctorCard extends StatelessWidget {
+  final String name;
+  final String location;
+  final String specialization;
+  final String rating;
+  final String imagePath;
+  final bool isSelected;
+  final VoidCallback onTap;
 
-  const SlidingButton({
+  const DoctorCard({
+    required this.name,
+    required this.location,
+    required this.specialization,
+    required this.rating,
+    required this.imagePath,
+    required this.isSelected,
+    required this.onTap,
     super.key,
-    required this.isOption1Selected,
-    required this.onToggle,
   });
 
   @override
-  _SlidingButtonState createState() => _SlidingButtonState();
-}
-
-class _SlidingButtonState extends State<SlidingButton> {
-  late bool isOption1Selected;
-
-  @override
-  void initState() {
-    super.initState();
-    isOption1Selected = widget.isOption1Selected;
-  }
-
-  void _toggleSelection() {
-    setState(() {
-      isOption1Selected = !isOption1Selected;
-      widget.onToggle(isOption1Selected);
-    });
-  }
-
-  @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: _toggleSelection,
-      child: Container(
-        width: 160,
-        height: 40,
-        decoration: BoxDecoration(
-          color: Colors.grey[300],
-          borderRadius: BorderRadius.circular(20),
+    return Card(
+      margin: const EdgeInsets.symmetric(vertical: 8),
+      color: isSelected ? Colors.blue.shade50 : null,
+      child: ListTile(
+        onTap: onTap,
+        leading: CircleAvatar(
+          backgroundImage: AssetImage(imagePath),
         ),
-        child: Stack(
-          alignment: Alignment.center,
+        title: Text(
+          name,
+          style: const TextStyle(fontWeight: FontWeight.bold),
+        ),
+        subtitle: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Animated sliding effect for the selection indicator
-            AnimatedAlign(
-              duration: const Duration(milliseconds: 200),
-              alignment: isOption1Selected
-                  ? Alignment.centerLeft
-                  : Alignment.centerRight,
-              child: Container(
-                width: 80,
-                height: 40,
-                decoration: BoxDecoration(
-                  color: Colors.blue,
-                  borderRadius: BorderRadius.circular(20),
-                ),
-              ),
-            ),
-            // Row to hold the option labels with reduced padding
-            const Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Padding(
-                  padding: EdgeInsets.only(left: 4),
-                  child: FittedBox(
-                    fit: BoxFit.scaleDown,
-                    child: Text(
-                      'Doctor',
-                      style: TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.black,
-                      ),
-                    ),
-                  ),
-                ),
-                Padding(
-                  padding: EdgeInsets.only(right: 4),
-                  child: FittedBox(
-                    fit: BoxFit.scaleDown,
-                    child: Text(
-                      'Hospital',
-                      style: TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.black,
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ),
+            Text(location),
+            Text(specialization, style: const TextStyle(fontSize: 12)),
+          ],
+        ),
+        trailing: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(Icons.star, color: Colors.amber),
+            Text(rating),
           ],
         ),
       ),

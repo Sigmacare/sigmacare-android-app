@@ -49,6 +49,8 @@ class AppInitializer extends StatelessWidget {
           return const Scaffold(
             body: Center(child: CircularProgressIndicator()),
           );
+
+          
         }
         // If a token exists, navigate to BottomNavigator.
         if (snapshot.hasData && snapshot.data == true) {
