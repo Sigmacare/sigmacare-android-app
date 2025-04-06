@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:sigmacare_android_app/pages/homepage/homepage.dart';
 import 'package:sigmacare_android_app/pages/booking_page.dart';
-import 'package:sigmacare_android_app/pages/user-registration/registrationpage.dart';
+import 'package:sigmacare_android_app/pages/servicepage/servicepage.dart';
+import 'package:sigmacare_android_app/pages/profile_page.dart';
+import 'package:sigmacare_android_app/pages/patient_management_page.dart';
 import 'package:sigmacare_android_app/api/_registerDevice.dart';
 
 class BottomNavigator extends StatefulWidget {
@@ -14,40 +16,29 @@ class BottomNavigator extends StatefulWidget {
 
 class _BottomNavigatorState extends State<BottomNavigator> {
   int _selectedIndex = 0;
+  final _storage = const FlutterSecureStorage();
 
   final List<Widget> _pages = [
-    HomePage(),
-    BookingPage(), // Tapping on "Appointment" now goes to BookingPage
-    const Center(child: Text('Profile Page', style: TextStyle(fontSize: 24))),
-    const Center(child: Text('Settings Page', style: TextStyle(fontSize: 24))),
+    const HomePage(),
+    const ServicePage(),
+    const BookingPage(),
+    const PatientManagementPage(),
+    const ProfilePage(),
   ];
 
   final List<String> _appBarTitles = [
     'Home',
-    'Appointments',
+    'Services',
+    'Book Appointment',
+    'Patients',
     'Profile',
-    'Settings',
   ];
 
-  void _onItemTapped(int index) {
-    setState(() {
-      _selectedIndex = index;
-    });
-  }
-
-  // Logout functionality: clear the secure storage and navigate to the main page.
   Future<void> _logout() async {
-    // Clear the auth token from secure storage.
-    const storage = FlutterSecureStorage();
-    await storage.delete(key: 'auth_token');
-
-    // Navigate to the main page. (Assuming your AppInitializer is set up in main.dart.)
-    Navigator.pushReplacement(
-      context,
-      MaterialPageRoute(
-        builder: (context) => const RegistrationPage(),
-      ),
-    );
+    await _storage.delete(key: 'auth_token');
+    if (mounted) {
+      Navigator.pushReplacementNamed(context, '/login');
+    }
   }
 
   @override
@@ -93,74 +84,82 @@ class _BottomNavigatorState extends State<BottomNavigator> {
         ),
       ),
       bottomNavigationBar: BottomNavigationBar(
-        items: const <BottomNavigationBarItem>[
+        currentIndex: _selectedIndex,
+        onTap: (index) {
+          setState(() {
+            _selectedIndex = index;
+          });
+        },
+        type: BottomNavigationBarType.fixed,
+        backgroundColor: Colors.blue[700],
+        selectedItemColor: Colors.white,
+        unselectedItemColor: Colors.white70,
+        items: const [
           BottomNavigationBarItem(
             icon: Icon(Icons.home),
             label: 'Home',
           ),
           BottomNavigationBarItem(
+            icon: Icon(Icons.medical_services),
+            label: 'Services',
+          ),
+          BottomNavigationBarItem(
             icon: Icon(Icons.calendar_today),
-            label: 'Appointment',
+            label: 'Book',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.people),
+            label: 'Patients',
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.person),
             label: 'Profile',
           ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.settings),
-            label: 'Settings',
-          ),
         ],
-        currentIndex: _selectedIndex,
-        selectedItemColor: Colors.green[900],
-        unselectedItemColor: Colors.grey,
-        onTap: _onItemTapped,
-        type: BottomNavigationBarType.fixed,
       ),
     );
   }
-}
 
-void _showAddDeviceDialog(BuildContext context) {
-  final deviceCodeController = TextEditingController();
-  final deviceSecretController = TextEditingController();
-
-  showDialog(
-    context: context,
-    builder: (context) {
-      return AlertDialog(
-        title: const Text("Add Device"),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(
-              controller: deviceCodeController,
-              decoration: const InputDecoration(labelText: "Device Code"),
+  void _showAddDeviceDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Add Device'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                decoration: const InputDecoration(
+                  labelText: 'Device Code',
+                ),
+              ),
+              const SizedBox(height: 10),
+              TextField(
+                decoration: const InputDecoration(
+                  labelText: 'Device Secret',
+                ),
+                obscureText: true,
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+              child: const Text('Cancel'),
             ),
-            TextField(
-              controller: deviceSecretController,
-              decoration: const InputDecoration(labelText: "Device Secret"),
-              obscureText: true,
+            TextButton(
+              onPressed: () {
+                // Handle device registration
+                Navigator.of(context).pop();
+              },
+              child: const Text('Add'),
             ),
           ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text("Cancel"),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              registerDevice(
-                deviceCodeController.text,
-                deviceSecretController.text,
-                context,
-              );
-            },
-            child: const Text("Register"),
-          ),
-        ],
-      );
-    },
-  );
+        );
+      },
+    );
+  }
 }

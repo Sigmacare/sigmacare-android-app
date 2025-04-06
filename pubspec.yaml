@@ -41,7 +41,7 @@ dependencies:
   font_awesome_flutter: ^10.8.0
   table_calendar: ^3.1.3
   http: ^1.2.0
-  web_socket_channel: ^3.0.2
+  web_socket_channel: 2.4.0
 
 dev_dependencies:
   flutter_test:
