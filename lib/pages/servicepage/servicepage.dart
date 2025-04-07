@@ -240,48 +240,6 @@ class _ServicePageState extends State<ServicePage> {
               ),
             ),
             const SizedBox(height: 16),
-
-            // Doctors Container (Grid)
-            const Text(
-              'Top Doctors',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 8),
-            GridView.builder(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 2,
-                crossAxisSpacing: 10,
-                mainAxisSpacing: 10,
-                childAspectRatio: 0.7,
-              ),
-              itemCount: 6,
-              itemBuilder: (context, index) {
-                return DoctorCard(
-                  name: 'Doctor $index',
-                  speciality: 'Speciality $index',
-                  image: 'lib/assets/hospital2.jpg',
-                  rating: '4.5',
-                );
-              },
-            ),
-            const SizedBox(height: 16),
-
-            // "View More" Button
-            GestureDetector(
-              onTap: () {
-                // Handle "View More Doctors" action
-                print('View More Doctors');
-              },
-              child: const Text(
-                'View More Doctors',
-                style: TextStyle(
-                  color: Colors.blue,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ),
           ],
         ),
       ),

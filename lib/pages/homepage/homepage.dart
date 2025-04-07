@@ -16,15 +16,15 @@ class HomePage extends StatefulWidget {
 
 class _HomePageState extends State<HomePage> {
   // Patient data
-  String lastDiagnosticDate = "2025-03-21";
-  String bodyStatus = "Walking";
-  String location = "123 Main St, Springfield";
+  String lastDiagnosticDate = "2025-04-7";
+  String bodyStatus = "Resting";
+  String location = "Karimakkad, Thrikkakara";
   String batteryStatus = "85%";
 
   // Vitals
   int heartRate = 78;
   int oxygenLevel = 98;
-  String motionStatus = "Walking";
+  String motionStatus = "Resting";
 
   // Battery level
   double batteryLevel = 0.85;
